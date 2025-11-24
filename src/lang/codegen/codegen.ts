@@ -231,6 +231,25 @@ export class CodeGenerator {
   }
 
   private visitBinaryExpression(expr: AST.BinaryExpr): void {
+    // 特殊处理逻辑运算符以实现短路
+    if (expr.operator.type === TokenType.LOGICAL_AND) {
+      this.visit(expr.left);
+      const endJump = this.emitJump(OpCode.JUMP_IF_FALSE_PEEK);
+      this.emit(OpCode.POP); // 弹出左侧的 true 值
+      this.visit(expr.right);
+      this.patchJump(endJump);
+      return;
+    }
+
+    if (expr.operator.type === TokenType.LOGICAL_OR) {
+      this.visit(expr.left);
+      const endJump = this.emitJump(OpCode.JUMP_IF_TRUE_PEEK);
+      this.emit(OpCode.POP); // 弹出左侧的 false 值
+      this.visit(expr.right);
+      this.patchJump(endJump);
+      return;
+    }
+
     this.visit(expr.left);
     this.visit(expr.right);
     switch (expr.operator.type) {

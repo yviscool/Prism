@@ -22,11 +22,11 @@ describe('Edge Cases and Error Handling (Stage 3)', () => {
     });
 
     test('should throw error on non-boolean in if condition', () => {
-      expectRuntimeError('if (1) {}', 'if 条件必须是布尔值。');
+      expectRuntimeError('if (1) {}', '条件表达式必须是布尔值。');
     });
 
     test('should throw error on non-boolean in while condition', () => {
-      expectRuntimeError('while (1) {}', 'while 条件必须是布尔值。');
+      expectRuntimeError('while (1) {}', '条件表达式必须是布尔值。');
     });
   });
 

@@ -60,7 +60,9 @@ export class VirtualMachine {
         case OpCode.ADD: {
           const right = this.stack.pop();
           const left = this.stack.pop();
-          // TODO: Move to ALU
+          if ((left.type !== ValueType.INT && left.type !== ValueType.DOUBLE) || (right.type !== ValueType.INT && right.type !== ValueType.DOUBLE)) {
+            throw new RuntimeError('操作数必须是数字。');
+          }
           const result = createInt(left.value + right.value);
           this.stack.push(result);
           break;
@@ -68,6 +70,9 @@ export class VirtualMachine {
         case OpCode.SUB: {
           const right = this.stack.pop();
           const left = this.stack.pop();
+          if ((left.type !== ValueType.INT && left.type !== ValueType.DOUBLE) || (right.type !== ValueType.INT && right.type !== ValueType.DOUBLE)) {
+            throw new RuntimeError('操作数必须是数字。');
+          }
           const result = createInt(left.value - right.value);
           this.stack.push(result);
           break;
@@ -75,6 +80,9 @@ export class VirtualMachine {
         case OpCode.MUL: {
           const right = this.stack.pop();
           const left = this.stack.pop();
+          if ((left.type !== ValueType.INT && left.type !== ValueType.DOUBLE) || (right.type !== ValueType.INT && right.type !== ValueType.DOUBLE)) {
+            throw new RuntimeError('操作数必须是数字。');
+          }
           const result = createInt(left.value * right.value);
           this.stack.push(result);
           break;
@@ -82,7 +90,12 @@ export class VirtualMachine {
         case OpCode.DIV: {
           const right = this.stack.pop();
           const left = this.stack.pop();
-          // 模拟 C++ 整数除法
+          if ((left.type !== ValueType.INT && left.type !== ValueType.DOUBLE) || (right.type !== ValueType.INT && right.type !== ValueType.DOUBLE)) {
+            throw new RuntimeError('操作数必须是数字。');
+          }
+          if (right.value === 0) {
+            throw new RuntimeError('不能除以零。');
+          }
           const result = createInt(Math.trunc(left.value / right.value));
           this.stack.push(result);
           break;
@@ -90,6 +103,12 @@ export class VirtualMachine {
         case OpCode.PERCENT: {
             const right = this.stack.pop();
             const left = this.stack.pop();
+            if ((left.type !== ValueType.INT && left.type !== ValueType.DOUBLE) || (right.type !== ValueType.INT && right.type !== ValueType.DOUBLE)) {
+                throw new RuntimeError('操作数必须是数字。');
+            }
+            if (right.value === 0) {
+                throw new RuntimeError('不能除以零。');
+            }
             const result = createInt(left.value % right.value);
             this.stack.push(result);
             break;
@@ -97,11 +116,18 @@ export class VirtualMachine {
 
         case OpCode.NEGATE: {
           const value = this.stack.pop();
+          if (value.type !== ValueType.INT && value.type !== ValueType.DOUBLE) {
+            throw new RuntimeError('操作数必须是数字。');
+          }
           this.stack.push(createInt(-value.value));
           break;
         }
         case OpCode.NOT: {
           const value = this.stack.pop();
+          if (value.type !== ValueType.BOOL) {
+            // Or should it coerce? For now, strict.
+            // throw new RuntimeError('Operand must be a boolean.');
+          }
           this.stack.push(createBool(!value.value));
           break;
         }
@@ -142,24 +168,36 @@ export class VirtualMachine {
         case OpCode.LT: {
           const right = this.stack.pop();
           const left = this.stack.pop();
+          if ((left.type !== ValueType.INT && left.type !== ValueType.DOUBLE) || (right.type !== ValueType.INT && right.type !== ValueType.DOUBLE)) {
+            throw new RuntimeError('操作数必须是数字。');
+          }
           this.stack.push(createBool(left.value < right.value));
           break;
         }
         case OpCode.GT: {
           const right = this.stack.pop();
           const left = this.stack.pop();
+          if ((left.type !== ValueType.INT && left.type !== ValueType.DOUBLE) || (right.type !== ValueType.INT && right.type !== ValueType.DOUBLE)) {
+            throw new RuntimeError('操作数必须是数字。');
+          }
           this.stack.push(createBool(left.value > right.value));
           break;
         }
         case OpCode.LTE: {
           const right = this.stack.pop();
           const left = this.stack.pop();
+          if ((left.type !== ValueType.INT && left.type !== ValueType.DOUBLE) || (right.type !== ValueType.INT && right.type !== ValueType.DOUBLE)) {
+            throw new RuntimeError('操作数必须是数字。');
+          }
           this.stack.push(createBool(left.value <= right.value));
           break;
         }
         case OpCode.GTE: {
           const right = this.stack.pop();
           const left = this.stack.pop();
+          if ((left.type !== ValueType.INT && left.type !== ValueType.DOUBLE) || (right.type !== ValueType.INT && right.type !== ValueType.DOUBLE)) {
+            throw new RuntimeError('操作数必须是数字。');
+          }
           this.stack.push(createBool(left.value >= right.value));
           break;
         }
@@ -171,12 +209,33 @@ export class VirtualMachine {
 
         case OpCode.JUMP_IF_FALSE: {
           const value = this.stack.pop();
-          // 只有严格的 false, 整数 0, double 0.0 才被认为是假
-          let isFalse = false;
-          if (value.type === ValueType.BOOL && value.value === false) isFalse = true;
-          else if ((value.type === ValueType.INT || value.type === ValueType.DOUBLE) && value.value === 0) isFalse = true;
+          if (value.type !== ValueType.BOOL) {
+            throw new RuntimeError('条件表达式必须是布尔值。');
+          }
           
-          if (isFalse) {
+          if (value.value === false) {
+            this.ip = instruction.operand;
+          }
+          break;
+        }
+
+        case OpCode.JUMP_IF_FALSE_PEEK: {
+          const value = this.stack.peek();
+          if (value.type !== ValueType.BOOL) {
+            throw new RuntimeError('条件表达式必须是布尔值。');
+          }
+          if (value.value === false) {
+            this.ip = instruction.operand;
+          }
+          break;
+        }
+
+        case OpCode.JUMP_IF_TRUE_PEEK: {
+          const value = this.stack.peek();
+          if (value.type !== ValueType.BOOL) {
+            throw new RuntimeError('条件表达式必须是布尔值。');
+          }
+          if (value.value === true) {
             this.ip = instruction.operand;
           }
           break;

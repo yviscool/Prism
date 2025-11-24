@@ -144,6 +144,17 @@ export enum OpCode {
    */
   JUMP_IF_FALSE,
 
+  /**
+   * JUMP_IF_FALSE_PEEK <address>
+   * 查看栈顶的值，如果为假，则跳转，但不弹出值。
+   */
+  JUMP_IF_FALSE_PEEK,
+  /**
+   * JUMP_IF_TRUE_PEEK <address>
+   * 查看栈顶的值，如果为真，则跳转，但不弹出值。
+   */
+  JUMP_IF_TRUE_PEEK,
+
   // === 堆内存与数组 (Heap & Array) ===
   /**
    * ALLOC_ARR
