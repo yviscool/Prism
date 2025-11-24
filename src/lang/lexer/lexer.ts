@@ -69,14 +69,6 @@ export class Lexer {
         return this.makeToken(TokenType.MINUS);
       case '*': return this.makeToken(this.match('=') ? TokenType.STAR_ASSIGN : TokenType.STAR);
       case '/':
-        // Handle comments
-        if (this.match('/')) {
-          while (this.peek() !== '\n' && !this.isAtEnd()) this.advance();
-          return this.scanToken(); // Rescan for the next token
-        } else if (this.match('*')) {
-          // Block comments not specified, but good to consider
-          throw new Error('Block comments are not supported.');
-        }
         return this.makeToken(this.match('=') ? TokenType.SLASH_ASSIGN : TokenType.SLASH);
       case '%': return this.makeToken(this.match('=') ? TokenType.PERCENT_ASSIGN : TokenType.PERCENT);
       
@@ -136,6 +128,22 @@ export class Lexer {
         case '/':
           if (this.peekNext() === '/') {
             while (this.peek() !== '\n' && !this.isAtEnd()) this.advance();
+          } else if (this.peekNext() === '*') {
+            this.advance(); // Consume '/'
+            this.advance(); // Consume '*'
+            while (!this.isAtEnd()) {
+              if (this.peek() === '*' && this.peekNext() === '/') {
+                this.advance(); // Consume '*'
+                this.advance(); // Consume '/'
+                break;
+              }
+              if (this.peek() === '\n') {
+                this.line++;
+                this.col = 1;
+              }
+              this.advance();
+            }
+
           } else {
             return;
           }
