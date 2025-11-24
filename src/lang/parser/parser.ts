@@ -88,6 +88,12 @@ export class Parser {
     if (this.match(TokenType.FOR)) {
       return this.forStatement();
     }
+    if (this.match(TokenType.BREAK)) {
+      return this.breakStatement();
+    }
+    if (this.match(TokenType.CONTINUE)) {
+      return this.continueStatement();
+    }
     if (this.match(TokenType.LBRACE)) {
       return { kind: 'BlockStmt', body: this.block() };
     }
@@ -95,6 +101,16 @@ export class Parser {
       return { kind: 'EmptyStmt' };
     }
     return this.expressionStatement();
+  }
+
+  private breakStatement(): AST.Stmt {
+    this.consume(TokenType.SEMICOLON, "break 语句后应有 ';'。");
+    return { kind: 'BreakStmt' };
+  }
+
+  private continueStatement(): AST.Stmt {
+    this.consume(TokenType.SEMICOLON, "continue 语句后应有 ';'。");
+    return { kind: 'ContinueStmt' };
   }
 
   private forStatement(): AST.Stmt {

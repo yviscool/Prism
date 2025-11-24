@@ -122,4 +122,12 @@ export interface EmptyStmt extends Stmt {
   kind: 'EmptyStmt';
 }
 
-// 未来将添加 ForStmt 等
+// 代表 break 语句
+export interface BreakStmt extends Stmt {
+  kind: 'BreakStmt';
+}
+
+// 代表 continue 语句
+export interface ContinueStmt extends Stmt {
+  kind: 'ContinueStmt';
+}

@@ -24,6 +24,8 @@ export enum TokenType {
   ELSE,           // else
   FOR,            // for
   WHILE,          // while
+  BREAK,          // break
+  CONTINUE,       // continue
   // RETURN,      // 暂不支持
 
   // 运算符与标点 (Operators & Punctuation)

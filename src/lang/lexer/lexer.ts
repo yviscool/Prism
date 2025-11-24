@@ -28,6 +28,8 @@ export class Lexer {
       ['else', TokenType.ELSE],
       ['for', TokenType.FOR],
       ['while', TokenType.WHILE],
+      ['break', TokenType.BREAK],
+      ['continue', TokenType.CONTINUE],
     ]);
   }
 
