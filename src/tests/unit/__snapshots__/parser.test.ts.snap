@@ -1,0 +1,518 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Parser should parse a simple variable declaration 1`] = `
+{
+  "body": [
+    {
+      "dataType": {
+        "col": 1,
+        "lexeme": "int",
+        "line": 1,
+        "type": 4,
+      },
+      "initializer": {
+        "kind": "Literal",
+        "value": 10,
+      },
+      "kind": "VarDeclaration",
+      "name": {
+        "col": 5,
+        "lexeme": "a",
+        "line": 1,
+        "type": 3,
+      },
+    },
+  ],
+  "kind": "Program",
+}
+`;
+
+exports[`Parser should parse an assignment expression 1`] = `
+{
+  "body": [
+    {
+      "expression": {
+        "kind": "Assignment",
+        "name": {
+          "col": 1,
+          "lexeme": "x",
+          "line": 1,
+          "type": 3,
+        },
+        "operator": {
+          "col": 3,
+          "lexeme": "=",
+          "line": 1,
+          "type": 20,
+        },
+        "value": {
+          "kind": "Identifier",
+          "name": {
+            "col": 5,
+            "lexeme": "y",
+            "line": 1,
+            "type": 3,
+          },
+        },
+      },
+      "kind": "ExpressionStmt",
+    },
+  ],
+  "kind": "Program",
+}
+`;
+
+exports[`Parser should parse a boolean declaration 1`] = `
+{
+  "body": [
+    {
+      "dataType": {
+        "col": 1,
+        "lexeme": "bool",
+        "line": 1,
+        "type": 6,
+      },
+      "initializer": {
+        "kind": "Literal",
+        "value": true,
+      },
+      "kind": "VarDeclaration",
+      "name": {
+        "col": 6,
+        "lexeme": "b",
+        "line": 1,
+        "type": 3,
+      },
+    },
+  ],
+  "kind": "Program",
+}
+`;
+
+exports[`Parser should parse arithmetic expressions with correct precedence 1`] = `
+{
+  "body": [
+    {
+      "expression": {
+        "kind": "Binary",
+        "left": {
+          "kind": "Binary",
+          "left": {
+            "kind": "Literal",
+            "value": 1,
+          },
+          "operator": {
+            "col": 3,
+            "lexeme": "+",
+            "line": 1,
+            "type": 13,
+          },
+          "right": {
+            "kind": "Binary",
+            "left": {
+              "kind": "Literal",
+              "value": 2,
+            },
+            "operator": {
+              "col": 7,
+              "lexeme": "*",
+              "line": 1,
+              "type": 15,
+            },
+            "right": {
+              "kind": "Literal",
+              "value": 3,
+            },
+          },
+        },
+        "operator": {
+          "col": 11,
+          "lexeme": "-",
+          "line": 1,
+          "type": 14,
+        },
+        "right": {
+          "kind": "Binary",
+          "left": {
+            "kind": "Literal",
+            "value": 4,
+          },
+          "operator": {
+            "col": 15,
+            "lexeme": "/",
+            "line": 1,
+            "type": 16,
+          },
+          "right": {
+            "kind": "Literal",
+            "value": 2,
+          },
+        },
+      },
+      "kind": "ExpressionStmt",
+    },
+  ],
+  "kind": "Program",
+}
+`;
+
+exports[`Parser should parse comparison expressions with correct precedence 1`] = `
+{
+  "body": [
+    {
+      "expression": {
+        "kind": "Binary",
+        "left": {
+          "kind": "Binary",
+          "left": {
+            "kind": "Literal",
+            "value": 1,
+          },
+          "operator": {
+            "col": 3,
+            "lexeme": "+",
+            "line": 1,
+            "type": 13,
+          },
+          "right": {
+            "kind": "Literal",
+            "value": 2,
+          },
+        },
+        "operator": {
+          "col": 7,
+          "lexeme": "==",
+          "line": 1,
+          "type": 26,
+        },
+        "right": {
+          "kind": "Binary",
+          "left": {
+            "kind": "Binary",
+            "left": {
+              "kind": "Literal",
+              "value": 3,
+            },
+            "operator": {
+              "col": 12,
+              "lexeme": "*",
+              "line": 1,
+              "type": 15,
+            },
+            "right": {
+              "kind": "Literal",
+              "value": 4,
+            },
+          },
+          "operator": {
+            "col": 16,
+            "lexeme": "<",
+            "line": 1,
+            "type": 28,
+          },
+          "right": {
+            "kind": "Literal",
+            "value": 5,
+          },
+        },
+      },
+      "kind": "ExpressionStmt",
+    },
+  ],
+  "kind": "Program",
+}
+`;
+
+exports[`Parser should parse logical expressions with correct precedence 1`] = `
+{
+  "body": [
+    {
+      "expression": {
+        "kind": "Binary",
+        "left": {
+          "kind": "Binary",
+          "left": {
+            "kind": "Literal",
+            "value": true,
+          },
+          "operator": {
+            "col": 6,
+            "lexeme": "&&",
+            "line": 1,
+            "type": 33,
+          },
+          "right": {
+            "kind": "Literal",
+            "value": false,
+          },
+        },
+        "operator": {
+          "col": 15,
+          "lexeme": "||",
+          "line": 1,
+          "type": 34,
+        },
+        "right": {
+          "kind": "Unary",
+          "operator": {
+            "col": 18,
+            "lexeme": "!",
+            "line": 1,
+            "type": 32,
+          },
+          "right": {
+            "kind": "Literal",
+            "value": true,
+          },
+        },
+      },
+      "kind": "ExpressionStmt",
+    },
+  ],
+  "kind": "Program",
+}
+`;
+
+exports[`Parser should parse unary expressions 1`] = `
+{
+  "body": [
+    {
+      "expression": {
+        "kind": "Binary",
+        "left": {
+          "kind": "Unary",
+          "operator": {
+            "col": 1,
+            "lexeme": "-",
+            "line": 1,
+            "type": 14,
+          },
+          "right": {
+            "kind": "Literal",
+            "value": 5,
+          },
+        },
+        "operator": {
+          "col": 4,
+          "lexeme": "+",
+          "line": 1,
+          "type": 13,
+        },
+        "right": {
+          "kind": "Unary",
+          "operator": {
+            "col": 6,
+            "lexeme": "!",
+            "line": 1,
+            "type": 32,
+          },
+          "right": {
+            "kind": "Literal",
+            "value": true,
+          },
+        },
+      },
+      "kind": "ExpressionStmt",
+    },
+  ],
+  "kind": "Program",
+}
+`;
+
+exports[`Parser should parse grouped expressions with parentheses 1`] = `
+{
+  "body": [
+    {
+      "expression": {
+        "kind": "Binary",
+        "left": {
+          "kind": "Binary",
+          "left": {
+            "kind": "Literal",
+            "value": 1,
+          },
+          "operator": {
+            "col": 4,
+            "lexeme": "+",
+            "line": 1,
+            "type": 13,
+          },
+          "right": {
+            "kind": "Literal",
+            "value": 2,
+          },
+        },
+        "operator": {
+          "col": 9,
+          "lexeme": "*",
+          "line": 1,
+          "type": 15,
+        },
+        "right": {
+          "kind": "Literal",
+          "value": 3,
+        },
+      },
+      "kind": "ExpressionStmt",
+    },
+  ],
+  "kind": "Program",
+}
+`;
+
+exports[`Parser should parse complex mixed expressions 1`] = `
+{
+  "body": [
+    {
+      "dataType": {
+        "col": 1,
+        "lexeme": "int",
+        "line": 1,
+        "type": 4,
+      },
+      "initializer": {
+        "kind": "Binary",
+        "left": {
+          "kind": "Binary",
+          "left": {
+            "kind": "Binary",
+            "left": {
+              "kind": "Binary",
+              "left": {
+                "kind": "Binary",
+                "left": {
+                  "kind": "Identifier",
+                  "name": {
+                    "col": 15,
+                    "lexeme": "a",
+                    "line": 1,
+                    "type": 3,
+                  },
+                },
+                "operator": {
+                  "col": 17,
+                  "lexeme": "+",
+                  "line": 1,
+                  "type": 13,
+                },
+                "right": {
+                  "kind": "Identifier",
+                  "name": {
+                    "col": 19,
+                    "lexeme": "b",
+                    "line": 1,
+                    "type": 3,
+                  },
+                },
+              },
+              "operator": {
+                "col": 22,
+                "lexeme": "*",
+                "line": 1,
+                "type": 15,
+              },
+              "right": {
+                "kind": "Identifier",
+                "name": {
+                  "col": 24,
+                  "lexeme": "c",
+                  "line": 1,
+                  "type": 3,
+                },
+              },
+            },
+            "operator": {
+              "col": 26,
+              "lexeme": "==",
+              "line": 1,
+              "type": 26,
+            },
+            "right": {
+              "kind": "Identifier",
+              "name": {
+                "col": 29,
+                "lexeme": "d",
+                "line": 1,
+                "type": 3,
+              },
+            },
+          },
+          "operator": {
+            "col": 31,
+            "lexeme": "&&",
+            "line": 1,
+            "type": 33,
+          },
+          "right": {
+            "kind": "Unary",
+            "operator": {
+              "col": 34,
+              "lexeme": "!",
+              "line": 1,
+              "type": 32,
+            },
+            "right": {
+              "kind": "Identifier",
+              "name": {
+                "col": 35,
+                "lexeme": "e",
+                "line": 1,
+                "type": 3,
+              },
+            },
+          },
+        },
+        "operator": {
+          "col": 37,
+          "lexeme": "||",
+          "line": 1,
+          "type": 34,
+        },
+        "right": {
+          "kind": "Binary",
+          "left": {
+            "kind": "Binary",
+            "left": {
+              "kind": "Identifier",
+              "name": {
+                "col": 40,
+                "lexeme": "f",
+                "line": 1,
+                "type": 3,
+              },
+            },
+            "operator": {
+              "col": 42,
+              "lexeme": "/",
+              "line": 1,
+              "type": 16,
+            },
+            "right": {
+              "kind": "Literal",
+              "value": 2,
+            },
+          },
+          "operator": {
+            "col": 46,
+            "lexeme": ">",
+            "line": 1,
+            "type": 29,
+          },
+          "right": {
+            "kind": "Literal",
+            "value": 1,
+          },
+        },
+      },
+      "kind": "VarDeclaration",
+      "name": {
+        "col": 5,
+        "lexeme": "result",
+        "line": 1,
+        "type": 3,
+      },
+    },
+  ],
+  "kind": "Program",
+}
+`;
