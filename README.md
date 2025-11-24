@@ -131,3 +131,54 @@ if (finalResult) {
     /unit                  // 单元测试
     /integration           // 集成测试
 ```
+
+## ⚙️ 系统执行流程 (Execution Flow)
+
+从宏观的源代码到微观的 CPU 指令执行，系统的全链路调用过程如下：
+
+### 1. 编译阶段 (Compilation Phase)
+
+入口: `src/lang/compiler.ts -> compile(source)`
+
+1.  **词法分析 (Lexical Analysis)**
+    *   **模块**: `Lexer` (`src/lang/lexer/lexer.ts`)
+    *   **输入**: C++ 源代码字符串 (String)
+    *   **输出**: 令牌流 (Token Stream)
+    *   **过程**: 扫描字符流，跳过空白和注释 (`//`, `/*...*/`)，识别关键字 (`int`, `while`)、标识符、字面量和运算符，生成 `Token` 对象。
+
+2.  **语法分析 (Parsing)**
+    *   **模块**: `Parser` (`src/lang/parser/parser.ts`)
+    *   **输入**: 令牌流 (Token[])
+    *   **输出**: 抽象语法树 (AST)
+    *   **过程**: 使用 **递归下降 (Recursive Descent)** 算法解析语句结构，配合 **Pratt Parser** 处理复杂的表达式优先级（如 `*` 高于 `+`）。最终构建出描述程序逻辑的树形结构 (e.g., `IfStmt`, `BinaryExpr`)。
+
+3.  **代码生成 (Code Generation)**
+    *   **模块**: `CodeGenerator` (`src/lang/codegen/codegen.ts`)
+    *   **输入**: 抽象语法树 (AST)
+    *   **输出**: 字节码指令集 (Instruction[])
+    *   **过程**: 遍历 AST (Visitor 模式)，将树形逻辑展平为线性的栈机指令。
+        *   管理 **符号表 (SymbolTable)** 以计算变量在栈上的索引偏移。
+        *   处理控制流跳转 (`JUMP`, `JUMP_IF_FALSE`) 来实现 `if/while/for`。
+        *   示例: `int a = 1` -> `PUSH 1` -> `STORE 0`。
+
+### 2. 运行阶段 (Execution Phase)
+
+入口: `src/core/vm/virtual-machine.ts -> VirtualMachine.run()`
+
+1.  **虚拟机初始化 (VM Setup)**
+    *   加载编译好的字节码 (`Instruction[]`)。
+    *   初始化 **调用栈 (Call Stack)** (`src/core/memory/call-stack.ts`) 和 **堆内存 (Heap)** (`src/core/memory/heap.ts`)。
+
+2.  **指令循环 (Fetch-Decode-Execute Loop)**
+    *   虚拟机进入主循环，通过指令指针 (`IP`) 逐条读取指令。
+    *   **Fetch**: 获取当前 `IP` 指向的指令 (e.g., `ADD`)。
+    *   **Decode & Execute**: 根据 `OpCode` 执行对应逻辑：
+        *   **栈操作**: `PUSH`, `POP`, `DUP` (数据入栈/出栈)。
+        *   **算术运算**: `ADD`, `SUB`, `MUL` (弹出两个操作数，计算后压回结果)。
+        *   **内存访问**: `LOAD 0` (读取局部变量), `STORE 1` (写入局部变量)。
+        *   **流程控制**: `JUMP_IF_FALSE` (如果栈顶为 false 则跳转 IP)。
+        *   **堆操作**: `ALLOC_ARR` (在堆上分配数组), `LOAD_IDX` (通过指针读取数组元素)。
+
+3.  **安全守卫 (Guardian Check)**
+    *   在执行敏感操作（如数组访问）时，`Guardian` (`src/core/vm/guardian.ts`) 会实时介入。
+    *   检查数组越界、空指针引用等运行时错误，提供友好的报错信息。
