@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eternity Kernel Playground</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="./dist/bundle.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .monaco-editor-container { height: 400px; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+<div id="app" class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+    <header class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-purple-400">Eternity Kernel</h1>
+        <p class="text-lg text-gray-400 mt-2">一个可视化的 C++ 教学执行器</p>
+    </header>
+
+    <main class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Left Panel: Code and Controls -->
+        <div class="flex flex-col space-y-4">
+            <div>
+                <label for="examples" class="block text-sm font-medium text-gray-400 mb-2">从测试用例中选择示例:</label>
+                <select id="examples" v-model="selectedExample" @change="loadExample" class="w-full bg-gray-800 border border-gray-700 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500">
+                    <option disabled value="">选择一个示例...</option>
+                    <option v-for="example in examples" :value="example.code">{{ example.name }}</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="code" class="block text-sm font-medium text-gray-400 mb-2">C++ 源代码</label>
+                <textarea id="code" v-model="sourceCode" rows="15" class="w-full bg-gray-800 border border-gray-700 rounded-md shadow-sm p-3 font-mono text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500" placeholder="输入你的 C++ 代码..."></textarea>
+            </div>
+
+            <button @click="run" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out">
+                编译并执行
+            </button>
+        </div>
+
+        <!-- Right Panel: Outputs -->
+        <div class="flex flex-col space-y-4">
+            <!-- Error Output -->
+            <div v-if="error" class="bg-red-900 border border-red-700 p-4 rounded-md">
+                <h3 class="font-bold text-red-300 mb-2">错误</h3>
+                <pre class="text-sm text-red-200 whitespace-pre-wrap font-mono">{{ error }}</pre>
+            </div>
+
+            <!-- Result Output -->
+            <div v-if="result" class="bg-green-900 border border-green-700 p-4 rounded-md">
+                <h3 class="font-bold text-green-300 mb-2">最终结果</h3>
+                <pre class="text-sm text-green-200 whitespace-pre-wrap font-mono">{{ result }}</pre>
+            </div>
+
+            <!-- Bytecode Output -->
+            <div>
+                <h3 class="font-bold text-gray-400 mb-2">生成的字节码</h3>
+                <div class="bg-gray-800 border border-gray-700 rounded-md p-3 max-h-96 overflow-y-auto">
+                    <pre class="text-sm text-gray-300 whitespace-pre-wrap font-mono">{{ formattedBytecode }}</pre>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    const { createApp, ref, computed } = Vue;
+
+    const eternity = window.eternity;
+
+    createApp({
+        setup() {
+            const sourceCode = ref(`int a = 10;\nint b = 20;\nint c = a + b;\nc;`);
+            const selectedExample = ref('');
+            const bytecode = ref([]);
+            const result = ref(null);
+            const error = ref(null);
+
+            const examples = [
+                { name: "基础 - While 循环", code: `int i = 0;\nint sum = 0;\nwhile (i < 5) {\n  sum = sum + i;\n  i = i + 1;\n}\nsum;` },
+                { name: "基础 - If/Else", code: `int x = 10;\nint y = 0;\nif (x > 5) {\n  y = 1;\n} else {\n  y = 2;\n}\ny;` },
+                { name: "基础 - For 循环", code: `int sum = 0;\nfor (int i = 0; i < 5; i++) {\n  sum = sum + i;\n}\nsum;` },
+                { name: "基础 - 多变量声明", code: `int a, b = 5, c;\na = 1;\nc = a + b;\nc;` },
+                { name: "运算符 - 复合赋值", code: `int i = 5;\ni += 10;\ni;` },
+                { name: "运算符 - 前置/后置自增", code: `int i = 5;\nint j = i++ + i; // 5 + 6\nj;` },
+                { name: "逻辑 - 短路求值 (&&)", code: `// 不会因“除以零”而报错\nbool a = false && (1 / 0 > 0);\na;` },
+                { name: "逻辑 - 短路求值 (||)", code: `// 不会因“除以零”而报错\nbool a = true || (1 / 0 > 0);\na;` },
+                { name: "边缘场景 - 复杂作用域", code: `int a = 1;\nint b = 10;\n{\n  int a = 2;\n  b = a;\n}\nint c = a + b; // 1 + 2\nc;` },
+                { name: "边缘场景 - 类型错误", code: `// VM 将会抛出一个运行时错误\nint a = 1 + true;` },
+            ];
+
+            const formattedBytecode = computed(() => {
+                if (!bytecode.value || bytecode.value.length === 0) {
+                    return '尚未生成字节码。';
+                }
+                // We need OpCode enum here, but it's not exposed. Let's just use numbers.
+                return bytecode.value.map((instr, index) => {
+                    const operand = instr.operand !== undefined ? JSON.stringify(instr.operand) : '';
+                    return `${String(index).padStart(3, '0')}: ${instr.opcode} ${operand}`;
+                }).join('\n');
+            });
+
+            const loadExample = () => {
+                sourceCode.value = selectedExample.value;
+            };
+
+            const run = () => {
+                bytecode.value = [];
+                result.value = null;
+                error.value = null;
+                try {
+                    const compiledCode = eternity.compile(sourceCode.value);
+                    bytecode.value = compiledCode;
+
+                    const vm = new eternity.VirtualMachine(compiledCode);
+                    const finalResult = vm.runToEnd();
+                    
+                    if (finalResult) {
+                        result.value = `类型: ${finalResult.type}, 值: ${JSON.stringify(finalResult.value)}`;
+                    } else {
+                        result.value = '执行完毕，无返回值。';
+                    }
+
+                } catch (e) {
+                    error.value = e.message;
+                }
+            };
+
+            return {
+                sourceCode,
+                selectedExample,
+                examples,
+                bytecode,
+                formattedBytecode,
+                result,
+                error,
+                loadExample,
+                run,
+            };
+        }
+    }).mount('#app');
+</script>
+
+</body>
+</html>
