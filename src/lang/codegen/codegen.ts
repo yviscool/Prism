@@ -13,9 +13,16 @@ import { SymbolTable } from './symbol-table';
  * 采用访问者模式 (Visitor Pattern) 对不同类型的 AST 节点进行处理。
  * @author tmac
  */
+interface LoopContext {
+  breakJumps: number[]; // Indices of JUMP instructions for 'break'
+  continueLabel: number; // Target index for 'continue'
+  continueJumps?: number[]; // Used when continueLabel is not yet known (e.g. For loops)
+}
+
 export class CodeGenerator {
   private bytecode: Instruction[] = [];
   private symbolTable: SymbolTable;
+  private loopStack: LoopContext[] = [];
 
   constructor() {
     this.symbolTable = new SymbolTable();
@@ -73,6 +80,12 @@ export class CodeGenerator {
         break;
       case 'ForStmt':
         this.visitForStatement(node);
+        break;
+      case 'BreakStmt':
+        this.visitBreakStmt(node as AST.BreakStmt);
+        break;
+      case 'ContinueStmt':
+        this.visitContinueStmt(node as AST.ContinueStmt);
         break;
       case 'EmptyStmt':
         // 空语句不生成任何字节码
@@ -132,11 +145,24 @@ export class CodeGenerator {
 
   private visitWhileStatement(stmt: AST.WhileStmt): void {
     const loopStart = this.bytecode.length;
+
+    // Push loop context for break/continue
+    // For while loops, continue jumps to the start (condition check)
+    this.loopStack.push({ breakJumps: [], continueLabel: loopStart });
+
     this.visit(stmt.condition);
     const exitJump = this.emitJump(OpCode.JUMP_IF_FALSE);
+
     this.visit(stmt.body);
+
     this.emitLoop(loopStart);
     this.patchJump(exitJump);
+
+    // Patch breaks
+    const context = this.loopStack.pop()!;
+    for (const breakJump of context.breakJumps) {
+      this.patchJump(breakJump);
+    }
   }
 
   private visitForStatement(stmt: AST.ForStmt): void {
@@ -147,7 +173,7 @@ export class CodeGenerator {
       this.visit(stmt.initializer);
     }
 
-    let loopStart = this.bytecode.length;
+    const loopStart = this.bytecode.length;
     let exitJump = -1;
 
     // 2. Condition
@@ -156,8 +182,77 @@ export class CodeGenerator {
       exitJump = this.emitJump(OpCode.JUMP_IF_FALSE);
     }
 
+    // Prepare loop context.
+    // However, the increment code is not yet generated, so we don't know its label.
+    // But we know 'continue' should jump to where 'increment' starts.
+    // Since 'increment' is generated after 'body', we can't know the exact index yet.
+    // Wait... if we generate increment code *after* body, the code looks like:
+    // [Init]
+    // LoopStart:
+    // [Condition] -> JUMP_IF_FALSE Exit
+    // [Body]
+    // IncrementStart:
+    // [Increment]
+    // JUMP LoopStart
+    // Exit:
+
+    // So 'continue' should jump to IncrementStart.
+    // We can use a placeholder for continueLabel, or simply generate a JUMP to a placeholder,
+    // and collect all continues to patch them later, similar to breaks.
+    // BUT, my current LoopContext structure expects a fixed continueLabel.
+    // Let's modify the strategy for FOR loops slightly: we can't set continueLabel immediately.
+    // Actually, we can just track continue jumps separately for FOR loops if we wanted,
+    // or we can allow `continueLabel` to be -1 and if so, record the jumps in a separate list in context.
+    // Simpler approach:
+    // We push the context. Since we don't know IncrementStart yet, we can't set continueLabel.
+    // But wait, the standard way to handle this in single-pass codegen for structured loops is:
+    // Treat 'continue' as a jump to a "continue target".
+    // For 'while', continue target = loop start.
+    // For 'for', continue target = increment start.
+
+    // Let's defer patching 'continue' for 'for' loops.
+    // I will add `continueJumps` to LoopContext.
+
+    // Revised LoopContext logic inline:
+    // Note: I need to update LoopContext interface definition if I want to support this properly.
+    // Or I can use a trick:
+    // `continue` in `for` loop jumps to a specific label. I can generate a label (noop or just the index) later.
+    // I will add `continueJumps` to the context and patch them.
+
+    // Let's go with adding `continueJumps` to `LoopContext` in the class property, but I can't edit the interface I just added easily without another diff.
+    // Wait, I can just replace the interface definition in this block since it's at the top.
+
+    // Let's assume I will change LoopContext to:
+    // interface LoopContext {
+    //   breakJumps: number[];
+    //   continueLabel: number; // if -1, use continueJumps
+    //   continueJumps: number[];
+    // }
+
+    // Actually, for `while`, continueLabel is known. For `for`, it is not.
+    // So `continueLabel` can be used for `while`, and `continueJumps` for `for`.
+    // Or just always use `continueJumps` and patch them?
+    // While: continue -> jumps to loopStart. loopStart is known. So we can emit JUMP loopStart immediately.
+    // For: continue -> jumps to incrementStart. incrementStart is unknown. We must emit JUMP 0 and patch.
+
+    // Implementation Detail:
+    // I'll update LoopContext to include `continueJumps` and make `continueLabel` optional or nullable.
+
+    // Re-planning the visitForStatement logic below based on this thought process.
+
+    const context: LoopContext = { breakJumps: [], continueLabel: -1, continueJumps: [] };
+    this.loopStack.push(context);
+
     // 3. Body
     this.visit(stmt.body);
+
+    // Define the target for 'continue' (start of increment)
+    const incrementStart = this.bytecode.length;
+
+    // Patch all collected continue jumps to here
+    for (const jump of context.continueJumps!) {
+      this.patchJump(jump);
+    }
 
     // 4. Increment
     if (stmt.increment) {
@@ -174,9 +269,41 @@ export class CodeGenerator {
       this.patchJump(exitJump);
     }
 
+    // Patch breaks (to here, the end of loop)
+    this.loopStack.pop(); // Pop context
+    for (const breakJump of context.breakJumps) {
+      this.patchJump(breakJump);
+    }
+
     const numLocals = this.symbolTable.exitScope();
     if (numLocals > 0) {
       this.emit(OpCode.POP_N, numLocals);
+    }
+  }
+
+  private visitBreakStmt(stmt: AST.BreakStmt): void {
+    if (this.loopStack.length === 0) {
+      throw new Error("break 语句只能在循环内使用。");
+    }
+    const context = this.loopStack[this.loopStack.length - 1];
+    const jump = this.emitJump(OpCode.JUMP);
+    context.breakJumps.push(jump);
+  }
+
+  private visitContinueStmt(stmt: AST.ContinueStmt): void {
+    if (this.loopStack.length === 0) {
+      throw new Error("continue 语句只能在循环内使用。");
+    }
+    const context = this.loopStack[this.loopStack.length - 1];
+
+    if (context.continueLabel !== -1) {
+      // Known target (e.g. while loop)
+      this.emit(OpCode.JUMP, context.continueLabel);
+    } else {
+      // Unknown target (e.g. for loop), record for patching
+      const jump = this.emitJump(OpCode.JUMP);
+      if (!context.continueJumps) context.continueJumps = [];
+      context.continueJumps.push(jump);
     }
   }
 
