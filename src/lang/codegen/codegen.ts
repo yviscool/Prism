@@ -30,9 +30,23 @@ export class CodeGenerator {
     this.bytecode = [];
     this.symbolTable = new SymbolTable();
 
-    for (const stmt of program.body) {
-      this.visit(stmt);
+    // 编译除最后一个之外的所有语句
+    for (let i = 0; i < program.body.length - 1; i++) {
+      this.visit(program.body[i]);
     }
+
+    // 特殊处理最后一个语句
+    const lastStatement = program.body[program.body.length - 1];
+    if (lastStatement) {
+      // 如果最后一个语句是表达式语句，我们不弹出它的值，
+      // 以便它能作为整个程序的返回值。
+      if (lastStatement.kind === 'ExpressionStmt') {
+        this.visit(lastStatement.expression);
+      } else {
+        this.visit(lastStatement);
+      }
+    }
+
     return this.bytecode;
   }
 
@@ -56,6 +70,12 @@ export class CodeGenerator {
         break;
       case 'WhileStmt':
         this.visitWhileStatement(node);
+        break;
+      case 'ForStmt':
+        this.visitForStatement(node);
+        break;
+      case 'EmptyStmt':
+        // 空语句不生成任何字节码
         break;
       case 'ExpressionStmt':
         this.visitExpressionStatement(node);
@@ -99,73 +119,92 @@ export class CodeGenerator {
   }
 
   private visitIfStatement(stmt: AST.IfStmt): void {
-    // 1. 编译条件
     this.visit(stmt.condition);
-
-    // 2. 发出 JUMP_IF_FALSE 指令，并获取其位置以便后续回填
     const thenJump = this.emitJump(OpCode.JUMP_IF_FALSE);
-
-    // 3. 编译 then 分支
     this.visit(stmt.thenBranch);
-
-    // 4. 如果有 else 分支，发出一个 JUMP 指令跳过 else
     const elseJump = stmt.elseBranch ? this.emitJump(OpCode.JUMP) : null;
-
-    // 5. 回填 then 跳转指令的目标地址 (即当前指令的位置)
     this.patchJump(thenJump);
-
-    // 6. 编译 else 分支
     if (stmt.elseBranch) {
       this.visit(stmt.elseBranch);
-      // 7. 回填 else 跳转指令
       if (elseJump) this.patchJump(elseJump);
     }
   }
 
   private visitWhileStatement(stmt: AST.WhileStmt): void {
-    // 1. 记录循环开始的位置
     const loopStart = this.bytecode.length;
-
-    // 2. 编译循环条件
     this.visit(stmt.condition);
-
-    // 3. 发出 JUMP_IF_FALSE 指令跳出循环
     const exitJump = this.emitJump(OpCode.JUMP_IF_FALSE);
-
-    // 4. 编译循环体
     this.visit(stmt.body);
-
-    // 5. 发出 JUMP 指令跳回循环开始的地方
     this.emitLoop(loopStart);
-
-    // 6. 回填跳出循环的指令
     this.patchJump(exitJump);
   }
 
-  private visitVarDeclaration(stmt: AST.VarDeclaration): void {
-    // 1. 编译初始化表达式 (如果存在)，将其值推入栈顶
+  private visitForStatement(stmt: AST.ForStmt): void {
+    this.symbolTable.enterScope();
+
+    // 1. Initializer
     if (stmt.initializer) {
       this.visit(stmt.initializer);
-    } else {
-      // 如果没有初始化，根据类型压入默认值
-      switch (stmt.dataType.type) {
-        case TokenType.INT:
-          this.emit(OpCode.PUSH, createInt(0));
-          break;
-        case TokenType.DOUBLE:
-          this.emit(OpCode.PUSH, createDouble(0.0));
-          break;
-        case TokenType.BOOL:
-          this.emit(OpCode.PUSH, createBool(false));
-          break;
-        default:
-          this.emit(OpCode.PUSH, null); // 对于不支持的类型
-      }
     }
-    
-    // 2. 在符号表中定义变量。此时，变量的值就是栈顶的那个值。
-    // VM 通过栈的位置来隐式知道这个变量。
-    this.symbolTable.define(stmt.name.lexeme);
+
+    let loopStart = this.bytecode.length;
+    let exitJump = -1;
+
+    // 2. Condition
+    if (stmt.condition) {
+      this.visit(stmt.condition);
+      exitJump = this.emitJump(OpCode.JUMP_IF_FALSE);
+    }
+
+    // 3. Body
+    this.visit(stmt.body);
+
+    // 4. Increment
+    if (stmt.increment) {
+      this.visit(stmt.increment);
+      // The result of the increment expression is not used
+      this.emit(OpCode.POP);
+    }
+
+    // 5. Jump back to the condition
+    this.emitLoop(loopStart);
+
+    // 6. Patch the exit jump
+    if (exitJump !== -1) {
+      this.patchJump(exitJump);
+    }
+
+    const numLocals = this.symbolTable.exitScope();
+    if (numLocals > 0) {
+      this.emit(OpCode.POP_N, numLocals);
+    }
+  }
+
+  private visitVarDeclaration(stmt: AST.VarDeclaration): void {
+    for (const declarator of stmt.declarators) {
+      // 1. 编译初始化表达式 (如果存在)，将其值推入栈顶
+      if (declarator.initializer) {
+        this.visit(declarator.initializer);
+      } else {
+        // 如果没有初始化，根据类型压入默认值
+        switch (stmt.dataType.type) {
+          case TokenType.INT:
+            this.emit(OpCode.PUSH, createInt(0));
+            break;
+          case TokenType.DOUBLE:
+            this.emit(OpCode.PUSH, createDouble(0.0));
+            break;
+          case TokenType.BOOL:
+            this.emit(OpCode.PUSH, createBool(false));
+            break;
+          default:
+            this.emit(OpCode.PUSH, null); // 对于不支持的类型
+        }
+      }
+      
+      // 2. 在符号表中定义变量。此时，变量的值就是栈顶的那个值。
+      this.symbolTable.define(declarator.name.lexeme);
+    }
   }
 
   private visitExpressionStatement(stmt: AST.ExpressionStmt): void {
@@ -173,9 +212,9 @@ export class CodeGenerator {
     // 表达式语句执行完后，其结果通常是无用的，需要从栈上弹出
     this.emit(OpCode.POP);
   }
-
+  
   // --- 表达式编译器 ---
-
+  
   private visitAssignmentExpression(expr: AST.AssignmentExpr): void {
     const index = this.symbolTable.resolve(expr.name.lexeme);
 
@@ -268,7 +307,7 @@ export class CodeGenerator {
         throw new Error(`未知的二元运算符: ${expr.operator.lexeme}`);
     }
   }
-
+  
   private visitUnaryExpression(expr: AST.UnaryExpr): void {
     this.visit(expr.right);
     switch (expr.operator.type) {
@@ -301,7 +340,7 @@ export class CodeGenerator {
 
   // --- 辅助方法 ---
 
-  private emitJump(jumpInstruction: OpCode.JUMP | OpCode.JUMP_IF_FALSE): number {
+  private emitJump(jumpInstruction: OpCode.JUMP | OpCode.JUMP_IF_FALSE | OpCode.JUMP_IF_FALSE_PEEK | OpCode.JUMP_IF_TRUE_PEEK): number {
     this.emit(jumpInstruction, 0); // Placeholder target
     return this.bytecode.length - 1;
   }

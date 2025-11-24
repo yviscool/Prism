@@ -63,15 +63,19 @@ export class Parser {
 
   private varDeclaration(): AST.Stmt {
     const type = this.previous();
-    const name = this.consume(TokenType.IDENTIFIER, '应为变量名。');
+    const declarators: AST.Declarator[] = [];
 
-    let initializer: AST.Expr | undefined = undefined;
-    if (this.match(TokenType.ASSIGN)) {
-      initializer = this.expression();
-    }
+    do {
+      const name = this.consume(TokenType.IDENTIFIER, '应为变量名。');
+      let initializer: AST.Expr | undefined = undefined;
+      if (this.match(TokenType.ASSIGN)) {
+        initializer = this.expression();
+      }
+      declarators.push({ kind: 'Declarator', name, initializer });
+    } while (this.match(TokenType.COMMA));
 
     this.consume(TokenType.SEMICOLON, "变量声明后应有 ';'。");
-    return { kind: 'VarDeclaration', dataType: type, name, initializer };
+    return { kind: 'VarDeclaration', dataType: type, declarators };
   }
 
   private statement(): AST.Stmt {
@@ -81,14 +85,50 @@ export class Parser {
     if (this.match(TokenType.WHILE)) {
       return this.whileStatement();
     }
+    if (this.match(TokenType.FOR)) {
+      return this.forStatement();
+    }
     if (this.match(TokenType.LBRACE)) {
       return { kind: 'BlockStmt', body: this.block() };
+    }
+    if (this.match(TokenType.SEMICOLON)) {
+      return { kind: 'EmptyStmt' };
     }
     return this.expressionStatement();
   }
 
+  private forStatement(): AST.Stmt {
+    this.consume(TokenType.LPAREN, "'for' 后应有 '('。");
+
+    let initializer: AST.VarDeclaration | AST.ExpressionStmt | undefined;
+    if (this.match(TokenType.SEMICOLON)) {
+      initializer = undefined;
+    } else if (this.match(TokenType.INT, TokenType.DOUBLE, TokenType.BOOL)) {
+      initializer = this.varDeclaration();
+    } else {
+      initializer = this.expressionStatement();
+    }
+
+    let condition: AST.Expr | undefined;
+    if (!this.check(TokenType.SEMICOLON)) {
+      condition = this.expression();
+    }
+    this.consume(TokenType.SEMICOLON, "循环条件后应有 ';'。");
+
+    let increment: AST.Expr | undefined;
+    if (!this.check(TokenType.RPAREN)) {
+      increment = this.expression();
+    }
+    this.consume(TokenType.RPAREN, "for 循环的子句后应有 ')'。");
+
+    const body = this.statement();
+
+    return { kind: 'ForStmt', initializer, condition, increment, body };
+  }
+
   private block(): AST.Stmt[] {
     const statements: AST.Stmt[] = [];
+
 
     while (!this.check(TokenType.RBRACE) && !this.isAtEnd()) {
       statements.push(this.declaration());

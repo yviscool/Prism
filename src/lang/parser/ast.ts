@@ -79,10 +79,16 @@ export interface BlockStmt extends Stmt {
   body: Stmt[];
 }
 
-// 代表一个变量声明语句 (e.g., "int a = 10;")
+// 代表一个变量声明语句 (e.g., "int a = 10, b;")
 export interface VarDeclaration extends Stmt {
   kind: 'VarDeclaration';
   dataType: Token; // 变量类型令牌 (e.g., 'int')
+  declarators: Declarator[];
+}
+
+// 代表一个声明中的单个变量
+export interface Declarator extends Node {
+  kind: 'Declarator';
   name: Token;     // 变量名令牌
   initializer?: Expr; // 可选的初始化表达式
 }
@@ -100,6 +106,20 @@ export interface WhileStmt extends Stmt {
   kind: 'WhileStmt';
   condition: Expr;
   body: Stmt;
+}
+
+// 代表 for 循环语句
+export interface ForStmt extends Stmt {
+  kind: 'ForStmt';
+  initializer?: VarDeclaration | ExpressionStmt;
+  condition?: Expr;
+  increment?: Expr;
+  body: Stmt;
+}
+
+// 代表一个空语句 (;)
+export interface EmptyStmt extends Stmt {
+  kind: 'EmptyStmt';
 }
 
 // 未来将添加 ForStmt 等

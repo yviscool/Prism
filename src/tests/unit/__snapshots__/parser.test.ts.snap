@@ -10,17 +10,22 @@ exports[`Parser should parse a simple variable declaration 1`] = `
         "line": 1,
         "type": 4,
       },
-      "initializer": {
-        "kind": "Literal",
-        "value": 10,
-      },
+      "declarators": [
+        {
+          "initializer": {
+            "kind": "Literal",
+            "value": 10,
+          },
+          "kind": "Declarator",
+          "name": {
+            "col": 5,
+            "lexeme": "a",
+            "line": 1,
+            "type": 3,
+          },
+        },
+      ],
       "kind": "VarDeclaration",
-      "name": {
-        "col": 5,
-        "lexeme": "a",
-        "line": 1,
-        "type": 3,
-      },
     },
   ],
   "kind": "Program",
@@ -72,17 +77,22 @@ exports[`Parser should parse a boolean declaration 1`] = `
         "line": 1,
         "type": 6,
       },
-      "initializer": {
-        "kind": "Literal",
-        "value": true,
-      },
+      "declarators": [
+        {
+          "initializer": {
+            "kind": "Literal",
+            "value": true,
+          },
+          "kind": "Declarator",
+          "name": {
+            "col": 6,
+            "lexeme": "b",
+            "line": 1,
+            "type": 3,
+          },
+        },
+      ],
       "kind": "VarDeclaration",
-      "name": {
-        "col": 6,
-        "lexeme": "b",
-        "line": 1,
-        "type": 3,
-      },
     },
   ],
   "kind": "Program",
@@ -370,147 +380,152 @@ exports[`Parser should parse complex mixed expressions 1`] = `
         "line": 1,
         "type": 4,
       },
-      "initializer": {
-        "kind": "Binary",
-        "left": {
-          "kind": "Binary",
-          "left": {
+      "declarators": [
+        {
+          "initializer": {
             "kind": "Binary",
             "left": {
               "kind": "Binary",
               "left": {
                 "kind": "Binary",
                 "left": {
-                  "kind": "Identifier",
-                  "name": {
-                    "col": 15,
-                    "lexeme": "a",
+                  "kind": "Binary",
+                  "left": {
+                    "kind": "Binary",
+                    "left": {
+                      "kind": "Identifier",
+                      "name": {
+                        "col": 15,
+                        "lexeme": "a",
+                        "line": 1,
+                        "type": 3,
+                      },
+                    },
+                    "operator": {
+                      "col": 17,
+                      "lexeme": "+",
+                      "line": 1,
+                      "type": 13,
+                    },
+                    "right": {
+                      "kind": "Identifier",
+                      "name": {
+                        "col": 19,
+                        "lexeme": "b",
+                        "line": 1,
+                        "type": 3,
+                      },
+                    },
+                  },
+                  "operator": {
+                    "col": 22,
+                    "lexeme": "*",
                     "line": 1,
-                    "type": 3,
+                    "type": 15,
+                  },
+                  "right": {
+                    "kind": "Identifier",
+                    "name": {
+                      "col": 24,
+                      "lexeme": "c",
+                      "line": 1,
+                      "type": 3,
+                    },
                   },
                 },
                 "operator": {
-                  "col": 17,
-                  "lexeme": "+",
+                  "col": 26,
+                  "lexeme": "==",
                   "line": 1,
-                  "type": 13,
+                  "type": 26,
                 },
                 "right": {
                   "kind": "Identifier",
                   "name": {
-                    "col": 19,
-                    "lexeme": "b",
+                    "col": 29,
+                    "lexeme": "d",
                     "line": 1,
                     "type": 3,
                   },
                 },
               },
               "operator": {
-                "col": 22,
-                "lexeme": "*",
+                "col": 31,
+                "lexeme": "&&",
                 "line": 1,
-                "type": 15,
+                "type": 33,
               },
               "right": {
-                "kind": "Identifier",
-                "name": {
-                  "col": 24,
-                  "lexeme": "c",
+                "kind": "Unary",
+                "operator": {
+                  "col": 34,
+                  "lexeme": "!",
                   "line": 1,
-                  "type": 3,
+                  "type": 32,
+                },
+                "right": {
+                  "kind": "Identifier",
+                  "name": {
+                    "col": 35,
+                    "lexeme": "e",
+                    "line": 1,
+                    "type": 3,
+                  },
                 },
               },
             },
             "operator": {
-              "col": 26,
-              "lexeme": "==",
+              "col": 37,
+              "lexeme": "||",
               "line": 1,
-              "type": 26,
+              "type": 34,
             },
             "right": {
-              "kind": "Identifier",
-              "name": {
-                "col": 29,
-                "lexeme": "d",
+              "kind": "Binary",
+              "left": {
+                "kind": "Binary",
+                "left": {
+                  "kind": "Identifier",
+                  "name": {
+                    "col": 40,
+                    "lexeme": "f",
+                    "line": 1,
+                    "type": 3,
+                  },
+                },
+                "operator": {
+                  "col": 42,
+                  "lexeme": "/",
+                  "line": 1,
+                  "type": 16,
+                },
+                "right": {
+                  "kind": "Literal",
+                  "value": 2,
+                },
+              },
+              "operator": {
+                "col": 46,
+                "lexeme": ">",
                 "line": 1,
-                "type": 3,
+                "type": 29,
+              },
+              "right": {
+                "kind": "Literal",
+                "value": 1,
               },
             },
           },
-          "operator": {
-            "col": 31,
-            "lexeme": "&&",
+          "kind": "Declarator",
+          "name": {
+            "col": 5,
+            "lexeme": "result",
             "line": 1,
-            "type": 33,
-          },
-          "right": {
-            "kind": "Unary",
-            "operator": {
-              "col": 34,
-              "lexeme": "!",
-              "line": 1,
-              "type": 32,
-            },
-            "right": {
-              "kind": "Identifier",
-              "name": {
-                "col": 35,
-                "lexeme": "e",
-                "line": 1,
-                "type": 3,
-              },
-            },
+            "type": 3,
           },
         },
-        "operator": {
-          "col": 37,
-          "lexeme": "||",
-          "line": 1,
-          "type": 34,
-        },
-        "right": {
-          "kind": "Binary",
-          "left": {
-            "kind": "Binary",
-            "left": {
-              "kind": "Identifier",
-              "name": {
-                "col": 40,
-                "lexeme": "f",
-                "line": 1,
-                "type": 3,
-              },
-            },
-            "operator": {
-              "col": 42,
-              "lexeme": "/",
-              "line": 1,
-              "type": 16,
-            },
-            "right": {
-              "kind": "Literal",
-              "value": 2,
-            },
-          },
-          "operator": {
-            "col": 46,
-            "lexeme": ">",
-            "line": 1,
-            "type": 29,
-          },
-          "right": {
-            "kind": "Literal",
-            "value": 1,
-          },
-        },
-      },
+      ],
       "kind": "VarDeclaration",
-      "name": {
-        "col": 5,
-        "lexeme": "result",
-        "line": 1,
-        "type": 3,
-      },
     },
   ],
   "kind": "Program",

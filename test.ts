@@ -3,10 +3,10 @@ import { VirtualMachine } from './src/core/vm/virtual-machine';
 
 // 1. 编写你的 C++ 源代码
 const source = `
-  int i = 0;
-  if (i > 10) {
-    i = i + 5;
-  }
+  int a, b;
+  a = 10;
+  b = 20;
+  int i = a + b;
   i;
 `;
 
