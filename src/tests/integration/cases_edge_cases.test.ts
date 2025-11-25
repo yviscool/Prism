@@ -59,19 +59,27 @@ describe('Edge Cases and Error Handling (Stage 3)', () => {
       const finalValue = run(source);
       expect(finalValue?.value).toBe(3);
     });
+
+    test('should throw error on use of uninitialized variable', () => {
+      const source = `
+        int a;
+        int b = a + 1;
+      `;
+      expect(() => run(source)).toThrow(new RuntimeError("使用了未初始化的变量。"));
+    });
   });
 
-  // --- 4. 控制流 ---
+  // --- 4. 控制流边界 ---
   describe('Control Flow Edge Cases', () => {
     test('should handle if statement with empty block', () => {
       const source = `
-        int a = 1;
-        if (true) {}
-        a = 2;
+        int a = 10;
+        if (a > 5) {}
+        a = 20;
         a;
       `;
       const finalValue = run(source);
-      expect(finalValue?.value).toBe(2);
+      expect(finalValue?.value).toBe(20);
     });
 
     test('should handle while loop that never executes', () => {

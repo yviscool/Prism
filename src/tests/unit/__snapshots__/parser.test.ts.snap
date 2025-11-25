@@ -23,6 +23,7 @@ exports[`Parser should parse a simple variable declaration 1`] = `
             "line": 1,
             "type": 3,
           },
+          "size": undefined,
         },
       ],
       "kind": "VarDeclaration",
@@ -38,17 +39,20 @@ exports[`Parser should parse an assignment expression 1`] = `
     {
       "expression": {
         "kind": "Assignment",
-        "name": {
-          "col": 1,
-          "lexeme": "x",
-          "line": 1,
-          "type": 3,
-        },
         "operator": {
           "col": 3,
           "lexeme": "=",
           "line": 1,
           "type": 26,
+        },
+        "target": {
+          "kind": "Identifier",
+          "name": {
+            "col": 1,
+            "lexeme": "x",
+            "line": 1,
+            "type": 3,
+          },
         },
         "value": {
           "kind": "Identifier",
@@ -90,6 +94,7 @@ exports[`Parser should parse a boolean declaration 1`] = `
             "line": 1,
             "type": 3,
           },
+          "size": undefined,
         },
       ],
       "kind": "VarDeclaration",
@@ -523,6 +528,7 @@ exports[`Parser should parse complex mixed expressions 1`] = `
             "line": 1,
             "type": 3,
           },
+          "size": undefined,
         },
       ],
       "kind": "VarDeclaration",

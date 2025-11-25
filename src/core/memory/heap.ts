@@ -1,5 +1,6 @@
 // src/core/memory/heap.ts
-import { VMValue, createInt } from './values';
+import { VMValue, createInt, createDouble, createBool } from './values';
+import { Token, TokenType } from '../../lang/lexer/tokens';
 
 /**
  * @file 堆内存 (Heap)
@@ -16,15 +17,26 @@ export class Heap {
    * @param initialValues 可选的初始化值列表。
    * @returns 分配好的数组在堆中的地址（指针）。
    */
-  allocArray(size: number, initialValues?: VMValue[]): number {
+  allocArray(size: number, typeToken?: Token, initialValues?: VMValue[]): number {
     const newArray: VMValue[] = new Array(size);
 
-    // 使用提供的初始值或默认值（整数 0）填充数组
+    // 使用提供的初始值或根据类型选择默认值填充数组
     for (let i = 0; i < size; i++) {
       if (initialValues && initialValues[i]) {
         newArray[i] = initialValues[i];
       } else {
-        newArray[i] = createInt(0); // C++ 风格，默认初始化为 0
+        switch (typeToken?.type) {
+          case TokenType.DOUBLE:
+            newArray[i] = createDouble(0.0);
+            break;
+          case TokenType.BOOL:
+            newArray[i] = createBool(false);
+            break;
+          case TokenType.INT:
+          default:
+            newArray[i] = createInt(0); // C++ 风格，默认初始化为 0
+            break;
+        }
       }
     }
 

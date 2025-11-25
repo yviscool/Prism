@@ -66,23 +66,79 @@ export class Parser {
     const declarators: AST.Declarator[] = [];
 
     do {
-      // Check if the next token is an IDENTIFIER
+      // 专门检查，以提供更友好的错误信息
       if (this.peek().type !== TokenType.IDENTIFIER) {
-        // If it's a keyword, throw a specific error
-        // Assuming keywords are in a contiguous range from INT to STRUCT
         if (this.peek().type >= TokenType.INT && this.peek().type <= TokenType.STRUCT) {
           throw this.error(this.peek(), `不能使用关键字 '${this.peek().lexeme}' 作为变量名。`);
         }
-        // Otherwise, let consume throw the generic "expected identifier" error
-        this.consume(TokenType.IDENTIFIER, '应为变量名。');
       }
-      const name = this.advance(); // Consume the IDENTIFIER token
+      this.consume(TokenType.IDENTIFIER, '应为变量名。');
+      const name = this.previous();
+
+      let size: AST.Expr | undefined = undefined;
+      if (this.match(TokenType.LBRACKET)) {
+        if (!this.check(TokenType.RBRACKET)) {
+          size = this.expression();
+        }
+        this.consume(TokenType.RBRACKET, "数组声明应有 ']'。");
+      }
 
       let initializer: AST.Expr | undefined = undefined;
       if (this.match(TokenType.ASSIGN)) {
-        initializer = this.expression();
+        if (this.match(TokenType.LBRACE)) {
+          // 初始化列表
+          const elements: AST.Expr[] = [];
+          if (!this.check(TokenType.RBRACE)) {
+            do {
+              elements.push(this.expression());
+            } while (this.match(TokenType.COMMA));
+          }
+          this.consume(TokenType.RBRACE, "初始化列表应由 '}' 闭合。");
+          initializer = { kind: 'InitializerList', elements };
+        } else {
+          // 简单表达式初始化
+          initializer = this.expression();
+        }
       }
-      declarators.push({ kind: 'Declarator', name, initializer });
+
+      // 语法校验
+      if (size && initializer && initializer.kind !== 'InitializerList') {
+        throw this.error(name, '数组不能用单个表达式初始化，请使用初始化列表。');
+      }
+      if (!size && initializer && initializer.kind !== 'InitializerList') {
+        // This is a normal variable assignment, which is fine.
+        // e.g. int x = 5;
+      }
+      if (size === undefined && initializer === undefined && this.check(TokenType.LBRACKET)) {
+         // This is an array declaration without explicit size, it must be initialized.
+         // But the check for initializer is later. Let's refine this.
+         // The case `int arr[];` without initializer is invalid.
+      }
+      if (size === undefined && initializer?.kind !== 'InitializerList' && declarators.some(d => d.size)) {
+        // This logic is getting complicated. Let's simplify.
+        // An array must have a size or an initializer list.
+      }
+      if (size === undefined && initializer?.kind !== 'InitializerList' && this.peek().type === TokenType.SEMICOLON) {
+        // This is tricky. `int arr[]` is invalid.
+        // The condition `if (this.match(TokenType.LBRACKET))` already happened.
+        // So if size is undefined, it means we saw `[]`.
+        // If we saw `[]` and there is no initializer, it's an error.
+        const isArrayDeclaration = declarators.length > 0 && declarators[declarators.length-1].size !== undefined;
+        // The logic is getting complex. Let's simplify the validation.
+      }
+
+      // Simplified validation: if it's an array (size is not null, or it was parsed as []), it can't have a simple initializer.
+      const isArray = size !== undefined || (this.previous().type === TokenType.RBRACKET);
+      if (isArray && initializer && initializer.kind !== 'InitializerList') {
+         throw this.error(name, '数组不能用单个表达式初始化，请使用初始化列表。');
+      }
+      // If size is implicit (size is undefined but it was an array `[]`), it MUST have an initializer list.
+      if (size === undefined && isArray && (!initializer || initializer.kind !== 'InitializerList')) {
+        throw this.error(name, '隐式大小的数组声明必须包含初始化列表。');
+      }
+
+
+      declarators.push({ kind: 'Declarator', name, initializer, size });
     } while (this.match(TokenType.COMMA));
 
     this.consume(TokenType.SEMICOLON, "变量声明后应有 ';'。");
@@ -208,10 +264,17 @@ export class Parser {
 
     // 循环处理中缀和后缀运算符
     while (true) {
+      if (this.match(TokenType.LBRACKET)) {
+        const index = this.expression();
+        this.consume(TokenType.RBRACKET, "数组访问应有 ']'。");
+        expr = { kind: 'Subscript', object: expr, index };
+        continue;
+      }
+
       if (this.match(TokenType.INC, TokenType.DEC)) {
         // 处理后缀 ++ 和 --
         const operator = this.previous();
-        if (expr.kind !== 'Identifier') {
+        if (expr.kind !== 'Identifier' && expr.kind !== 'Subscript') {
           throw this.error(operator, '操作数必须是可修改的左值。');
         }
         expr = { kind: 'Update', operator, argument: expr, prefix: false };
@@ -253,14 +316,14 @@ export class Parser {
     }
     if (this.match(TokenType.MINUS, TokenType.LOGICAL_NOT)) { // 处理一元运算符
       const operator = this.previous();
-      const right = this.parsePrefix(); // 一元运算符的右侧通常是更高优先级的表达式
+      const right = this.parsePrecedence(7); // 使用一元优先级
       return { kind: 'Unary', operator, right };
     }
     // 处理前缀 ++ 和 --
     if (this.match(TokenType.INC, TokenType.DEC)) {
       const operator = this.previous();
-      const argument = this.parsePrefix(); // 通常后面跟一个标识符
-      if (argument.kind !== 'Identifier') {
+      const argument = this.parsePrecedence(7); // 使用一元优先级
+      if (argument.kind !== 'Identifier' && argument.kind !== 'Subscript') {
         throw this.error(operator, '操作数必须是可修改的左值。');
       }
       return { kind: 'Update', operator, argument, prefix: true };
@@ -285,9 +348,8 @@ export class Parser {
       const operator = this.previous();
       const value = this.assignment(); // 赋值是右结合的，递归调用
 
-      if (expr.kind === 'Identifier') {
-        const name = (expr as AST.IdentifierExpr).name;
-        return { kind: 'Assignment', name, operator, value };
+      if (expr.kind === 'Identifier' || expr.kind === 'Subscript') {
+        return { kind: 'Assignment', target: expr, operator, value };
       }
 
       throw this.error(operator, '无效的赋值目标。');

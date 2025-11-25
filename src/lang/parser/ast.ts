@@ -45,7 +45,7 @@ export interface UnaryExpr extends Expr {
 
 export interface AssignmentExpr extends Expr {
   kind: 'Assignment';
-  name: Token; // 被赋值的标识符
+  target: Expr; // 被赋值的表达式 (左值)
   operator: Token; // 赋值运算符, e.g., =, +=, -=
   value: Expr; // 赋给标识符的表达式
 }
@@ -55,6 +55,17 @@ export interface UpdateExpr extends Expr {
   operator: Token; // ++ or --
   argument: Expr;
   prefix: boolean; // true for ++i, false for i++
+}
+
+export interface SubscriptExpr extends Expr {
+  kind: 'Subscript';
+  object: Expr; // 被访问的对象 (通常是标识符)
+  index: Expr;  // 索引表达式
+}
+
+export interface InitializerListExpr extends Expr {
+  kind: 'InitializerList';
+  elements: Expr[];
 }
 
 // --- 语句 (Statements) ---
@@ -91,6 +102,7 @@ export interface Declarator extends Node {
   kind: 'Declarator';
   name: Token;     // 变量名令牌
   initializer?: Expr; // 可选的初始化表达式
+  size?: Expr; // 数组大小表达式
 }
 
 // 代表 if-else 语句

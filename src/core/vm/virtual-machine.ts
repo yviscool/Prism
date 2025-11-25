@@ -27,6 +27,13 @@ export class VirtualMachine {
     this.instructions = bytecode;
   }
 
+  private checkInitialized(value: VMValue, count: number = 1): void {
+    if (value.type === ValueType.UNINITIALIZED) {
+      throw new RuntimeError('使用了未初始化的变量。');
+    }
+    // A potential future improvement is to check multiple values from the stack at once.
+  }
+
   // VM 主执行循环，设计为 Generator 以便未来进行单步调试和可视化
   *run(): Generator<void, VMValue | null, void> {
     while (this.ip < this.instructions.length) {
@@ -57,9 +64,19 @@ export class VirtualMachine {
           this.stack.push(this.stack.peek());
           break;
 
+        case OpCode.SWAP: {
+          const a = this.stack.pop();
+          const b = this.stack.pop();
+          this.stack.push(a);
+          this.stack.push(b);
+          break;
+        }
+
         case OpCode.ADD: {
           const right = this.stack.pop();
           const left = this.stack.pop();
+          this.checkInitialized(left);
+          this.checkInitialized(right);
           if ((left.type !== ValueType.INT && left.type !== ValueType.DOUBLE) || (right.type !== ValueType.INT && right.type !== ValueType.DOUBLE)) {
             throw new RuntimeError('操作数必须是数字。');
           }
@@ -70,6 +87,8 @@ export class VirtualMachine {
         case OpCode.SUB: {
           const right = this.stack.pop();
           const left = this.stack.pop();
+          this.checkInitialized(left);
+          this.checkInitialized(right);
           if ((left.type !== ValueType.INT && left.type !== ValueType.DOUBLE) || (right.type !== ValueType.INT && right.type !== ValueType.DOUBLE)) {
             throw new RuntimeError('操作数必须是数字。');
           }
@@ -80,6 +99,8 @@ export class VirtualMachine {
         case OpCode.MUL: {
           const right = this.stack.pop();
           const left = this.stack.pop();
+          this.checkInitialized(left);
+          this.checkInitialized(right);
           if ((left.type !== ValueType.INT && left.type !== ValueType.DOUBLE) || (right.type !== ValueType.INT && right.type !== ValueType.DOUBLE)) {
             throw new RuntimeError('操作数必须是数字。');
           }
@@ -90,6 +111,8 @@ export class VirtualMachine {
         case OpCode.DIV: {
           const right = this.stack.pop();
           const left = this.stack.pop();
+          this.checkInitialized(left);
+          this.checkInitialized(right);
           if ((left.type !== ValueType.INT && left.type !== ValueType.DOUBLE) || (right.type !== ValueType.INT && right.type !== ValueType.DOUBLE)) {
             throw new RuntimeError('操作数必须是数字。');
           }
@@ -103,6 +126,8 @@ export class VirtualMachine {
         case OpCode.PERCENT: {
             const right = this.stack.pop();
             const left = this.stack.pop();
+            this.checkInitialized(left);
+            this.checkInitialized(right);
             if ((left.type !== ValueType.INT && left.type !== ValueType.DOUBLE) || (right.type !== ValueType.INT && right.type !== ValueType.DOUBLE)) {
                 throw new RuntimeError('操作数必须是数字。');
             }
@@ -116,6 +141,7 @@ export class VirtualMachine {
 
         case OpCode.NEGATE: {
           const value = this.stack.pop();
+          this.checkInitialized(value);
           if (value.type !== ValueType.INT && value.type !== ValueType.DOUBLE) {
             throw new RuntimeError('操作数必须是数字。');
           }
@@ -124,6 +150,7 @@ export class VirtualMachine {
         }
         case OpCode.NOT: {
           const value = this.stack.pop();
+          this.checkInitialized(value);
           if (value.type !== ValueType.BOOL) {
             // Or should it coerce? For now, strict.
             // throw new RuntimeError('Operand must be a boolean.');
@@ -134,6 +161,7 @@ export class VirtualMachine {
         
         case OpCode.PRINT: {
           const value = this.stack.peek();
+          this.checkInitialized(value);
           if (value.type === ValueType.POINTER) {
             console.log(`Pointer(address=${(value.value as Pointer).address})`);
           } else {
@@ -149,25 +177,38 @@ export class VirtualMachine {
         
         case OpCode.STORE:
           // STORE 不弹出值，以支持 a = b = c
-          this.stack.store(this.bp, instruction.operand, this.stack.peek());
+          const valueToStore = this.stack.peek();
+          // Storing an uninitialized value is not an error, but using it is.
+          // However, if we do `int b = a;` where a is uninit, `b` becomes uninit.
+          // The error is thrown when `b` is used. This is correct.
+          // What about `a = b` where b is uninit? `a` becomes uninit.
+          // Let's check the value being stored.
+          this.checkInitialized(valueToStore);
+          this.stack.store(this.bp, instruction.operand, valueToStore);
           break;
 
         // === 比较运算 ===
         case OpCode.EQ: {
           const right = this.stack.pop();
           const left = this.stack.pop();
+          this.checkInitialized(left);
+          this.checkInitialized(right);
           this.stack.push(createBool(left.value === right.value));
           break;
         }
         case OpCode.NEQ: {
           const right = this.stack.pop();
           const left = this.stack.pop();
+          this.checkInitialized(left);
+          this.checkInitialized(right);
           this.stack.push(createBool(left.value !== right.value));
           break;
         }
         case OpCode.LT: {
           const right = this.stack.pop();
           const left = this.stack.pop();
+          this.checkInitialized(left);
+          this.checkInitialized(right);
           if ((left.type !== ValueType.INT && left.type !== ValueType.DOUBLE) || (right.type !== ValueType.INT && right.type !== ValueType.DOUBLE)) {
             throw new RuntimeError('操作数必须是数字。');
           }
@@ -177,6 +218,8 @@ export class VirtualMachine {
         case OpCode.GT: {
           const right = this.stack.pop();
           const left = this.stack.pop();
+          this.checkInitialized(left);
+          this.checkInitialized(right);
           if ((left.type !== ValueType.INT && left.type !== ValueType.DOUBLE) || (right.type !== ValueType.INT && right.type !== ValueType.DOUBLE)) {
             throw new RuntimeError('操作数必须是数字。');
           }
@@ -186,6 +229,8 @@ export class VirtualMachine {
         case OpCode.LTE: {
           const right = this.stack.pop();
           const left = this.stack.pop();
+          this.checkInitialized(left);
+          this.checkInitialized(right);
           if ((left.type !== ValueType.INT && left.type !== ValueType.DOUBLE) || (right.type !== ValueType.INT && right.type !== ValueType.DOUBLE)) {
             throw new RuntimeError('操作数必须是数字。');
           }
@@ -195,6 +240,8 @@ export class VirtualMachine {
         case OpCode.GTE: {
           const right = this.stack.pop();
           const left = this.stack.pop();
+          this.checkInitialized(left);
+          this.checkInitialized(right);
           if ((left.type !== ValueType.INT && left.type !== ValueType.DOUBLE) || (right.type !== ValueType.INT && right.type !== ValueType.DOUBLE)) {
             throw new RuntimeError('操作数必须是数字。');
           }
@@ -209,6 +256,7 @@ export class VirtualMachine {
 
         case OpCode.JUMP_IF_FALSE: {
           const value = this.stack.pop();
+          this.checkInitialized(value);
           if (value.type !== ValueType.BOOL) {
             throw new RuntimeError('条件表达式必须是布尔值。');
           }
@@ -221,6 +269,7 @@ export class VirtualMachine {
 
         case OpCode.JUMP_IF_FALSE_PEEK: {
           const value = this.stack.peek();
+          this.checkInitialized(value);
           if (value.type !== ValueType.BOOL) {
             throw new RuntimeError('条件表达式必须是布尔值。');
           }
@@ -232,6 +281,7 @@ export class VirtualMachine {
 
         case OpCode.JUMP_IF_TRUE_PEEK: {
           const value = this.stack.peek();
+          this.checkInitialized(value);
           if (value.type !== ValueType.BOOL) {
             throw new RuntimeError('条件表达式必须是布尔值。');
           }
@@ -244,10 +294,12 @@ export class VirtualMachine {
         // === 堆内存与数组 ===
         case OpCode.ALLOC_ARR: {
           const sizeVal = this.stack.pop();
+          this.checkInitialized(sizeVal);
           if (sizeVal.type !== ValueType.INT) {
             throw new RuntimeError('数组大小必须是整数');
           }
-          const address = this.heap.allocArray(sizeVal.value);
+          const typeToken = instruction.operand; // 接收类型
+          const address = this.heap.allocArray(sizeVal.value, typeToken);
           this.stack.push(createPointer(address));
           break;
         }
@@ -255,6 +307,8 @@ export class VirtualMachine {
         case OpCode.LOAD_IDX: {
           const indexVal = this.stack.pop();
           const ptrVal = this.stack.pop();
+          this.checkInitialized(indexVal);
+          this.checkInitialized(ptrVal);
 
           if (ptrVal.type !== ValueType.POINTER) throw new RuntimeError('LOAD_IDX 需要一个指针');
           if (indexVal.type !== ValueType.INT) throw new RuntimeError('数组索引必须是整数');
@@ -276,6 +330,9 @@ export class VirtualMachine {
           const valueToStore = this.stack.pop();
           const indexVal = this.stack.pop();
           const ptrVal = this.stack.pop();
+          this.checkInitialized(valueToStore);
+          this.checkInitialized(indexVal);
+          this.checkInitialized(ptrVal);
 
           if (ptrVal.type !== ValueType.POINTER) throw new RuntimeError('STORE_IDX 需要一个指针');
           if (indexVal.type !== ValueType.INT) throw new RuntimeError('数组索引必须是整数');
@@ -289,6 +346,8 @@ export class VirtualMachine {
           this.guardian.checkArrayBounds(arr.length, index);
 
           this.heap.store(address, index, valueToStore);
+          // 赋值表达式应该有返回值，所以把存入的值再推回去
+          this.stack.push(valueToStore);
           break;
         }
 

@@ -36,6 +36,12 @@ export enum OpCode {
    */
   DUP,
 
+  /**
+   * SWAP
+   * 交换栈顶的两个值。
+   */
+  SWAP,
+
   // === 算术运算 (Arithmetic Operations) ===
   /**
    * ADD

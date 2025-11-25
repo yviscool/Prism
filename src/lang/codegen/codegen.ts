@@ -3,8 +3,9 @@ import * as AST from '../parser/ast';
 import { Instruction } from '../../core/isa/instructions';
 import { TokenType } from '../lexer/tokens';
 import { OpCode } from '../../core/isa/opcodes';
-import { createInt, createDouble, createBool } from '../../core/memory/values';
+import { createInt, createDouble, createBool, createUninitialized } from '../../core/memory/values';
 import { SymbolTable } from './symbol-table';
+import { CompileError } from '../../shared/errors';
 
 /**
  * @file 代码生成器 (Code Generator)
@@ -112,6 +113,9 @@ export class CodeGenerator {
       case 'Identifier':
         this.visitIdentifier(node);
         break;
+      case 'Subscript':
+        this.visitSubscriptExpression(node);
+        break;
       default:
         // @ts-ignore
         throw new Error(`未知的 AST 节点类型: ${node.kind}`);
@@ -119,6 +123,14 @@ export class CodeGenerator {
   }
 
   // --- 语句编译器 ---
+
+  private visitSubscriptExpression(expr: AST.SubscriptExpr): void {
+    // 编译数组对象和索引，将它们推到栈上
+    this.visit(expr.object);
+    this.visit(expr.index);
+    // 发出加载指令
+    this.emit(OpCode.LOAD_IDX);
+  }
 
   private visitBlockStatement(stmt: AST.BlockStmt): void {
     this.symbolTable.enterScope();
@@ -309,27 +321,53 @@ export class CodeGenerator {
 
   private visitVarDeclaration(stmt: AST.VarDeclaration): void {
     for (const declarator of stmt.declarators) {
-      // 1. 编译初始化表达式 (如果存在)，将其值推入栈顶
-      if (declarator.initializer) {
-        this.visit(declarator.initializer);
+      const isArray = declarator.size !== undefined || (declarator.initializer && declarator.initializer.kind === 'InitializerList');
+
+      if (isArray) {
+        const initializer = declarator.initializer as AST.InitializerListExpr | undefined;
+
+        // 1. 分配数组
+        if (declarator.size) {
+          this.visit(declarator.size);
+        } else {
+          // 隐式大小，从初始化列表获取
+          if (!initializer) throw new Error('隐式大小的数组必须被初始化。'); // Should be caught by parser, but as a safeguard.
+          this.emit(OpCode.PUSH, createInt(initializer.elements.length));
+        }
+        this.emit(OpCode.ALLOC_ARR, stmt.dataType); // 栈顶现在是数组指针
+
+        // 2. 初始化数组元素
+        if (initializer) {
+          if (initializer.kind !== 'InitializerList') throw new Error('数组需要一个初始化列表。'); // Safeguard
+          
+          // 在编译时检查初始化列表大小
+          if (declarator.size && declarator.size.kind === 'Literal') {
+            const declaredSize = declarator.size.value as number;
+            const initializerSize = initializer.elements.length;
+            if (initializerSize > declaredSize) {
+              throw new CompileError(`初始化列表的元素数量 (${initializerSize}) 超出数组大小 (${declaredSize})。`);
+            }
+          }
+
+          for (let i = 0; i < initializer.elements.length; i++) {
+            this.emit(OpCode.DUP); // 复制数组指针
+            this.emit(OpCode.PUSH, createInt(i)); // 推入索引
+            this.visit(initializer.elements[i]); // 推入元素值
+            this.emit(OpCode.STORE_IDX); // 存储
+            this.emit(OpCode.POP); // 弹出 STORE_IDX 留下的值
+          }
+        }
       } else {
-        // 如果没有初始化，根据类型压入默认值
-        switch (stmt.dataType.type) {
-          case TokenType.INT:
-            this.emit(OpCode.PUSH, createInt(0));
-            break;
-          case TokenType.DOUBLE:
-            this.emit(OpCode.PUSH, createDouble(0.0));
-            break;
-          case TokenType.BOOL:
-            this.emit(OpCode.PUSH, createBool(false));
-            break;
-          default:
-            this.emit(OpCode.PUSH, null); // 对于不支持的类型
+        // 普通变量声明
+        if (declarator.initializer) {
+          this.visit(declarator.initializer);
+        } else {
+          // 如果没有初始化，推入未初始化哨兵值
+          this.emit(OpCode.PUSH, createUninitialized());
         }
       }
       
-      // 2. 在符号表中定义变量。此时，变量的值就是栈顶的那个值。
+      // 在符号表中定义变量。此时，变量的值(或数组指针)就是栈顶的那个值。
       this.symbolTable.define(declarator.name.lexeme);
     }
   }
@@ -343,56 +381,131 @@ export class CodeGenerator {
   // --- 表达式编译器 ---
   
   private visitAssignmentExpression(expr: AST.AssignmentExpr): void {
-    const index = this.symbolTable.resolve(expr.name.lexeme);
+    const target = expr.target;
 
-    if (expr.operator.type === TokenType.ASSIGN) {
-      // 简单赋值: a = b
-      // 1. 编译右侧表达式
-      this.visit(expr.value);
-    } else {
-      // 复合赋值: a += b  (等价于 a = a + b)
-      // 1. 加载 a 的当前值
-      this.emit(OpCode.LOAD, index);
-      // 2. 编译右侧表达式
-      this.visit(expr.value);
-      // 3. 执行相应的二元运算
-      switch (expr.operator.type) {
-        case TokenType.PLUS_ASSIGN:    this.emit(OpCode.ADD); break;
-        case TokenType.MINUS_ASSIGN:   this.emit(OpCode.SUB); break;
-        case TokenType.STAR_ASSIGN:    this.emit(OpCode.MUL); break;
-        case TokenType.SLASH_ASSIGN:   this.emit(OpCode.DIV); break;
-        case TokenType.PERCENT_ASSIGN: this.emit(OpCode.PERCENT); break;
-        default:
-          throw new Error(`未知的复合赋值运算符: ${expr.operator.lexeme}`);
+    if (target.kind === 'Identifier') {
+      const index = this.symbolTable.resolve(target.name.lexeme);
+
+      if (expr.operator.type === TokenType.ASSIGN) {
+        // 简单赋值: a = b
+        this.visit(expr.value);
+      } else {
+        // 复合赋值: a += b (等价于 a = a + b)
+        this.emit(OpCode.LOAD, index);
+        this.visit(expr.value);
+        switch (expr.operator.type) {
+          case TokenType.PLUS_ASSIGN:    this.emit(OpCode.ADD); break;
+          case TokenType.MINUS_ASSIGN:   this.emit(OpCode.SUB); break;
+          case TokenType.STAR_ASSIGN:    this.emit(OpCode.MUL); break;
+          case TokenType.SLASH_ASSIGN:   this.emit(OpCode.DIV); break;
+          case TokenType.PERCENT_ASSIGN: this.emit(OpCode.PERCENT); break;
+          default:
+            throw new Error(`未知的复合赋值运算符: ${expr.operator.lexeme}`);
+        }
       }
+      this.emit(OpCode.STORE, index);
+
+    } else if (target.kind === 'Subscript') {
+      const subscript = target as AST.SubscriptExpr;
+      if (expr.operator.type === TokenType.ASSIGN) {
+        // 简单赋值: arr[i] = value
+        this.visit(subscript.object);
+        this.visit(subscript.index);
+        this.visit(expr.value);
+        this.emit(OpCode.STORE_IDX);
+      } else {
+        // 复合赋值: arr[i] += value
+        // 这是一个 "read-modify-write" 序列
+        // 1. 准备地址以供最终写入
+        this.visit(subscript.object);
+        this.visit(subscript.index);
+
+        // 2. 准备地址并读取旧值
+        this.visit(subscript.object);
+        this.visit(subscript.index);
+        this.emit(OpCode.LOAD_IDX);
+
+        // 3. 计算新值
+        this.visit(expr.value);
+        switch (expr.operator.type) {
+          case TokenType.PLUS_ASSIGN:    this.emit(OpCode.ADD); break;
+          case TokenType.MINUS_ASSIGN:   this.emit(OpCode.SUB); break;
+          case TokenType.STAR_ASSIGN:    this.emit(OpCode.MUL); break;
+          case TokenType.SLASH_ASSIGN:   this.emit(OpCode.DIV); break;
+          case TokenType.PERCENT_ASSIGN: this.emit(OpCode.PERCENT); break;
+          default:
+            throw new Error(`未知的数组复合赋值运算符: ${expr.operator.lexeme}`);
+        }
+
+        // 4. 执行写入, 此时栈顶是 [ptr, index, result]
+        this.emit(OpCode.STORE_IDX);
+      }
+    } else {
+      throw new Error('无效的赋值目标');
     }
-    
-    // 4. 将最终结果存储回变量
-    this.emit(OpCode.STORE, index);
   }
 
   private visitUpdateExpression(expr: AST.UpdateExpr): void {
-    if (expr.argument.kind !== 'Identifier') {
-      throw new Error('Update expression must have an identifier as an argument.');
-    }
-    const index = this.symbolTable.resolve(expr.argument.name.lexeme);
     const op = expr.operator.type === TokenType.INC ? OpCode.ADD : OpCode.SUB;
+    const argument = expr.argument;
 
-    if (expr.prefix) {
-      // ++i: 先加，再加载 (结果是新值)
-      this.emit(OpCode.LOAD, index);
-      this.emit(OpCode.PUSH, createInt(1));
-      this.emit(op);
-      this.emit(OpCode.STORE, index);
-      this.emit(OpCode.LOAD, index);
+    if (argument.kind === 'Identifier') {
+      const index = this.symbolTable.resolve(argument.name.lexeme);
+      if (expr.prefix) {
+        // ++i: 先加，再加载 (结果是新值)
+        this.emit(OpCode.LOAD, index);
+        this.emit(OpCode.PUSH, createInt(1));
+        this.emit(op);
+        this.emit(OpCode.STORE, index);
+        // this.emit(OpCode.LOAD, index); // STORE现在会把值留在栈顶
+      } else {
+        // i++: 先加载，再加 (结果是旧值)
+        this.emit(OpCode.LOAD, index); // 1. 加载旧值 (这将是表达式的结果)
+        this.emit(OpCode.DUP);         // 2. 复制旧值，一个用于计算，一个作为结果
+        this.emit(OpCode.PUSH, createInt(1)); // 3. 推入 1
+        this.emit(op);                  // 4. 计算新值
+        this.emit(OpCode.STORE, index); // 5. 存储新值
+        this.emit(OpCode.POP);          // 6. 弹出计算后的新值，留下原来的旧值作为表达式结果
+      }
+    } else if (argument.kind === 'Subscript') {
+      const subscript = argument as AST.SubscriptExpr;
+      if (expr.prefix) {
+        // ++arr[i]
+        // 1. 准备地址
+        this.visit(subscript.object);
+        this.visit(subscript.index);
+        // 2. 读取旧值
+        this.visit(subscript.object);
+        this.visit(subscript.index);
+        this.emit(OpCode.LOAD_IDX);
+        // 3. 计算新值
+        this.emit(OpCode.PUSH, createInt(1));
+        this.emit(op);
+        // 4. 存储新值, STORE_IDX 会将新值留在栈顶
+        this.emit(OpCode.STORE_IDX);
+      } else {
+        // arr[i]++
+        // 1. 加载旧值，作为表达式的结果
+        this.visit(subscript.object);
+        this.visit(subscript.index);
+        this.emit(OpCode.LOAD_IDX);
+
+        // 2. 准备地址和新值用于存储
+        this.visit(subscript.object);
+        this.visit(subscript.index);
+        
+        this.visit(subscript.object);
+        this.visit(subscript.index);
+        this.emit(OpCode.LOAD_IDX);
+        this.emit(OpCode.PUSH, createInt(1));
+        this.emit(op);
+
+        // 3. 存储新值
+        this.emit(OpCode.STORE_IDX); // 此时栈顶是 [old_val, new_val]
+        this.emit(OpCode.POP); // 弹出 new_val, 留下 old_val
+      }
     } else {
-      // i++: 先加载，再加 (结果是旧值)
-      this.emit(OpCode.LOAD, index); // 1. 加载旧值 (这将是表达式的结果)
-      this.emit(OpCode.DUP);         // 2. 复制旧值，一个用于计算，一个作为结果
-      this.emit(OpCode.PUSH, createInt(1)); // 3. 推入 1
-      this.emit(op);                  // 4. 计算新值
-      this.emit(OpCode.STORE, index); // 5. 存储新值
-      this.emit(OpCode.POP);          // 6. 弹出计算后的新值，留下原来的旧值作为表达式结果
+      throw new Error('Update expression must have an identifier or subscript as an argument.');
     }
   }
 

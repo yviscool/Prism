@@ -7,10 +7,11 @@
 
 // 值类型枚举
 export enum ValueType {
-  INT = 'INT',
-  DOUBLE = 'DOUBLE',
-  BOOL = 'BOOL',
-  POINTER = 'POINTER',
+  INT,
+  DOUBLE,
+  BOOL,
+  UNINITIALIZED,
+  POINTER,
 }
 
 // 基础值接口
@@ -24,6 +25,20 @@ export type VMInt = BaseValue<ValueType.INT, number>;
 export type VMDouble = BaseValue<ValueType.DOUBLE, number>;
 export type VMBool = BaseValue<ValueType.BOOL, boolean>;
 
+// --- Uninitialized ---
+export interface UninitializedValue extends VMValue {
+  type: ValueType.UNINITIALIZED;
+  value: null;
+}
+
+const uninitializedInstance: UninitializedValue = { type: ValueType.UNINITIALIZED, value: null };
+
+export function createUninitialized(): UninitializedValue {
+  return uninitializedInstance;
+}
+
+
+// --- Pointer ---
 // 指针类型，用于引用堆内存中的数据
 export interface Pointer {
   // 在堆中的地址/索引
