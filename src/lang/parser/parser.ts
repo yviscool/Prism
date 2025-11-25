@@ -302,10 +302,11 @@ export class Parser {
   // 解析前缀表达式 (字面量, 标识符, 一元表达式, 括号表达式)
   private parsePrefix(): AST.Expr {
     if (this.match(TokenType.INT_LITERAL, TokenType.DOUBLE_LITERAL)) {
-      return { kind: 'Literal', value: Number(this.previous().lexeme) };
+      const prev = this.previous();
+      return { kind: 'Literal', value: Number(prev.lexeme), type: prev.type };
     }
-    if (this.match(TokenType.TRUE)) return { kind: 'Literal', value: true };
-    if (this.match(TokenType.FALSE)) return { kind: 'Literal', value: false };
+    if (this.match(TokenType.TRUE)) return { kind: 'Literal', value: true, type: TokenType.TRUE };
+    if (this.match(TokenType.FALSE)) return { kind: 'Literal', value: false, type: TokenType.FALSE };
     if (this.match(TokenType.IDENTIFIER)) {
       return { kind: 'Identifier', name: this.previous() };
     }

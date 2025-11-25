@@ -1,4 +1,4 @@
-// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+// Bun Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Parser should parse a simple variable declaration 1`] = `
 {
@@ -14,6 +14,7 @@ exports[`Parser should parse a simple variable declaration 1`] = `
         {
           "initializer": {
             "kind": "Literal",
+            "type": 0,
             "value": 10,
           },
           "kind": "Declarator",
@@ -85,6 +86,7 @@ exports[`Parser should parse a boolean declaration 1`] = `
         {
           "initializer": {
             "kind": "Literal",
+            "type": 7,
             "value": true,
           },
           "kind": "Declarator",
@@ -114,6 +116,7 @@ exports[`Parser should parse arithmetic expressions with correct precedence 1`] 
           "kind": "Binary",
           "left": {
             "kind": "Literal",
+            "type": 0,
             "value": 1,
           },
           "operator": {
@@ -126,6 +129,7 @@ exports[`Parser should parse arithmetic expressions with correct precedence 1`] 
             "kind": "Binary",
             "left": {
               "kind": "Literal",
+              "type": 0,
               "value": 2,
             },
             "operator": {
@@ -136,6 +140,7 @@ exports[`Parser should parse arithmetic expressions with correct precedence 1`] 
             },
             "right": {
               "kind": "Literal",
+              "type": 0,
               "value": 3,
             },
           },
@@ -150,6 +155,7 @@ exports[`Parser should parse arithmetic expressions with correct precedence 1`] 
           "kind": "Binary",
           "left": {
             "kind": "Literal",
+            "type": 0,
             "value": 4,
           },
           "operator": {
@@ -160,6 +166,7 @@ exports[`Parser should parse arithmetic expressions with correct precedence 1`] 
           },
           "right": {
             "kind": "Literal",
+            "type": 0,
             "value": 2,
           },
         },
@@ -181,6 +188,7 @@ exports[`Parser should parse comparison expressions with correct precedence 1`] 
           "kind": "Binary",
           "left": {
             "kind": "Literal",
+            "type": 0,
             "value": 1,
           },
           "operator": {
@@ -191,6 +199,7 @@ exports[`Parser should parse comparison expressions with correct precedence 1`] 
           },
           "right": {
             "kind": "Literal",
+            "type": 0,
             "value": 2,
           },
         },
@@ -206,6 +215,7 @@ exports[`Parser should parse comparison expressions with correct precedence 1`] 
             "kind": "Binary",
             "left": {
               "kind": "Literal",
+              "type": 0,
               "value": 3,
             },
             "operator": {
@@ -216,6 +226,7 @@ exports[`Parser should parse comparison expressions with correct precedence 1`] 
             },
             "right": {
               "kind": "Literal",
+              "type": 0,
               "value": 4,
             },
           },
@@ -227,6 +238,7 @@ exports[`Parser should parse comparison expressions with correct precedence 1`] 
           },
           "right": {
             "kind": "Literal",
+            "type": 0,
             "value": 5,
           },
         },
@@ -248,6 +260,7 @@ exports[`Parser should parse logical expressions with correct precedence 1`] = `
           "kind": "Binary",
           "left": {
             "kind": "Literal",
+            "type": 7,
             "value": true,
           },
           "operator": {
@@ -258,6 +271,7 @@ exports[`Parser should parse logical expressions with correct precedence 1`] = `
           },
           "right": {
             "kind": "Literal",
+            "type": 8,
             "value": false,
           },
         },
@@ -277,6 +291,7 @@ exports[`Parser should parse logical expressions with correct precedence 1`] = `
           },
           "right": {
             "kind": "Literal",
+            "type": 7,
             "value": true,
           },
         },
@@ -304,6 +319,7 @@ exports[`Parser should parse unary expressions 1`] = `
           },
           "right": {
             "kind": "Literal",
+            "type": 0,
             "value": 5,
           },
         },
@@ -323,6 +339,7 @@ exports[`Parser should parse unary expressions 1`] = `
           },
           "right": {
             "kind": "Literal",
+            "type": 7,
             "value": true,
           },
         },
@@ -344,6 +361,7 @@ exports[`Parser should parse grouped expressions with parentheses 1`] = `
           "kind": "Binary",
           "left": {
             "kind": "Literal",
+            "type": 0,
             "value": 1,
           },
           "operator": {
@@ -354,6 +372,7 @@ exports[`Parser should parse grouped expressions with parentheses 1`] = `
           },
           "right": {
             "kind": "Literal",
+            "type": 0,
             "value": 2,
           },
         },
@@ -365,6 +384,7 @@ exports[`Parser should parse grouped expressions with parentheses 1`] = `
         },
         "right": {
           "kind": "Literal",
+          "type": 0,
           "value": 3,
         },
       },
@@ -506,6 +526,7 @@ exports[`Parser should parse complex mixed expressions 1`] = `
                 },
                 "right": {
                   "kind": "Literal",
+                  "type": 0,
                   "value": 2,
                 },
               },
@@ -517,6 +538,7 @@ exports[`Parser should parse complex mixed expressions 1`] = `
               },
               "right": {
                 "kind": "Literal",
+                "type": 0,
                 "value": 1,
               },
             },
