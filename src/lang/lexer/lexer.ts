@@ -30,6 +30,10 @@ export class Lexer {
       ['while', TokenType.WHILE],
       ['break', TokenType.BREAK],
       ['continue', TokenType.CONTINUE],
+      ['return', TokenType.RETURN],
+      ['void', TokenType.VOID],
+      ['class', TokenType.CLASS],
+      ['struct', TokenType.STRUCT],
     ]);
   }
 

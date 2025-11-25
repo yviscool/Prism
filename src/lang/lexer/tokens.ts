@@ -26,7 +26,10 @@ export enum TokenType {
   WHILE,          // while
   BREAK,          // break
   CONTINUE,       // continue
-  // RETURN,      // 暂不支持
+  RETURN,         // return
+  VOID,           // void
+  CLASS,          // class
+  STRUCT,         // struct
 
   // 运算符与标点 (Operators & Punctuation)
   PLUS,           // +

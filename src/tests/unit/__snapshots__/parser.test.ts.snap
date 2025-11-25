@@ -1,4 +1,4 @@
-// Bun Snapshot v1, https://goo.gl/fbAQLP
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
 exports[`Parser should parse a simple variable declaration 1`] = `
 {
@@ -48,7 +48,7 @@ exports[`Parser should parse an assignment expression 1`] = `
           "col": 3,
           "lexeme": "=",
           "line": 1,
-          "type": 22,
+          "type": 26,
         },
         "value": {
           "kind": "Identifier",
@@ -115,7 +115,7 @@ exports[`Parser should parse arithmetic expressions with correct precedence 1`] 
             "col": 3,
             "lexeme": "+",
             "line": 1,
-            "type": 15,
+            "type": 19,
           },
           "right": {
             "kind": "Binary",
@@ -127,7 +127,7 @@ exports[`Parser should parse arithmetic expressions with correct precedence 1`] 
               "col": 7,
               "lexeme": "*",
               "line": 1,
-              "type": 17,
+              "type": 21,
             },
             "right": {
               "kind": "Literal",
@@ -139,7 +139,7 @@ exports[`Parser should parse arithmetic expressions with correct precedence 1`] 
           "col": 11,
           "lexeme": "-",
           "line": 1,
-          "type": 16,
+          "type": 20,
         },
         "right": {
           "kind": "Binary",
@@ -151,7 +151,7 @@ exports[`Parser should parse arithmetic expressions with correct precedence 1`] 
             "col": 15,
             "lexeme": "/",
             "line": 1,
-            "type": 18,
+            "type": 22,
           },
           "right": {
             "kind": "Literal",
@@ -182,7 +182,7 @@ exports[`Parser should parse comparison expressions with correct precedence 1`] 
             "col": 3,
             "lexeme": "+",
             "line": 1,
-            "type": 15,
+            "type": 19,
           },
           "right": {
             "kind": "Literal",
@@ -193,7 +193,7 @@ exports[`Parser should parse comparison expressions with correct precedence 1`] 
           "col": 7,
           "lexeme": "==",
           "line": 1,
-          "type": 28,
+          "type": 32,
         },
         "right": {
           "kind": "Binary",
@@ -207,7 +207,7 @@ exports[`Parser should parse comparison expressions with correct precedence 1`] 
               "col": 12,
               "lexeme": "*",
               "line": 1,
-              "type": 17,
+              "type": 21,
             },
             "right": {
               "kind": "Literal",
@@ -218,7 +218,7 @@ exports[`Parser should parse comparison expressions with correct precedence 1`] 
             "col": 16,
             "lexeme": "<",
             "line": 1,
-            "type": 30,
+            "type": 34,
           },
           "right": {
             "kind": "Literal",
@@ -249,7 +249,7 @@ exports[`Parser should parse logical expressions with correct precedence 1`] = `
             "col": 6,
             "lexeme": "&&",
             "line": 1,
-            "type": 35,
+            "type": 39,
           },
           "right": {
             "kind": "Literal",
@@ -260,7 +260,7 @@ exports[`Parser should parse logical expressions with correct precedence 1`] = `
           "col": 15,
           "lexeme": "||",
           "line": 1,
-          "type": 36,
+          "type": 40,
         },
         "right": {
           "kind": "Unary",
@@ -268,7 +268,7 @@ exports[`Parser should parse logical expressions with correct precedence 1`] = `
             "col": 18,
             "lexeme": "!",
             "line": 1,
-            "type": 34,
+            "type": 38,
           },
           "right": {
             "kind": "Literal",
@@ -295,7 +295,7 @@ exports[`Parser should parse unary expressions 1`] = `
             "col": 1,
             "lexeme": "-",
             "line": 1,
-            "type": 16,
+            "type": 20,
           },
           "right": {
             "kind": "Literal",
@@ -306,7 +306,7 @@ exports[`Parser should parse unary expressions 1`] = `
           "col": 4,
           "lexeme": "+",
           "line": 1,
-          "type": 15,
+          "type": 19,
         },
         "right": {
           "kind": "Unary",
@@ -314,7 +314,7 @@ exports[`Parser should parse unary expressions 1`] = `
             "col": 6,
             "lexeme": "!",
             "line": 1,
-            "type": 34,
+            "type": 38,
           },
           "right": {
             "kind": "Literal",
@@ -345,7 +345,7 @@ exports[`Parser should parse grouped expressions with parentheses 1`] = `
             "col": 4,
             "lexeme": "+",
             "line": 1,
-            "type": 15,
+            "type": 19,
           },
           "right": {
             "kind": "Literal",
@@ -356,7 +356,7 @@ exports[`Parser should parse grouped expressions with parentheses 1`] = `
           "col": 9,
           "lexeme": "*",
           "line": 1,
-          "type": 17,
+          "type": 21,
         },
         "right": {
           "kind": "Literal",
@@ -405,7 +405,7 @@ exports[`Parser should parse complex mixed expressions 1`] = `
                       "col": 17,
                       "lexeme": "+",
                       "line": 1,
-                      "type": 15,
+                      "type": 19,
                     },
                     "right": {
                       "kind": "Identifier",
@@ -421,7 +421,7 @@ exports[`Parser should parse complex mixed expressions 1`] = `
                     "col": 22,
                     "lexeme": "*",
                     "line": 1,
-                    "type": 17,
+                    "type": 21,
                   },
                   "right": {
                     "kind": "Identifier",
@@ -437,7 +437,7 @@ exports[`Parser should parse complex mixed expressions 1`] = `
                   "col": 26,
                   "lexeme": "==",
                   "line": 1,
-                  "type": 28,
+                  "type": 32,
                 },
                 "right": {
                   "kind": "Identifier",
@@ -453,7 +453,7 @@ exports[`Parser should parse complex mixed expressions 1`] = `
                 "col": 31,
                 "lexeme": "&&",
                 "line": 1,
-                "type": 35,
+                "type": 39,
               },
               "right": {
                 "kind": "Unary",
@@ -461,7 +461,7 @@ exports[`Parser should parse complex mixed expressions 1`] = `
                   "col": 34,
                   "lexeme": "!",
                   "line": 1,
-                  "type": 34,
+                  "type": 38,
                 },
                 "right": {
                   "kind": "Identifier",
@@ -478,7 +478,7 @@ exports[`Parser should parse complex mixed expressions 1`] = `
               "col": 37,
               "lexeme": "||",
               "line": 1,
-              "type": 36,
+              "type": 40,
             },
             "right": {
               "kind": "Binary",
@@ -497,7 +497,7 @@ exports[`Parser should parse complex mixed expressions 1`] = `
                   "col": 42,
                   "lexeme": "/",
                   "line": 1,
-                  "type": 18,
+                  "type": 22,
                 },
                 "right": {
                   "kind": "Literal",
@@ -508,7 +508,7 @@ exports[`Parser should parse complex mixed expressions 1`] = `
                 "col": 46,
                 "lexeme": ">",
                 "line": 1,
-                "type": 31,
+                "type": 35,
               },
               "right": {
                 "kind": "Literal",

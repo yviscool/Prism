@@ -66,7 +66,18 @@ export class Parser {
     const declarators: AST.Declarator[] = [];
 
     do {
-      const name = this.consume(TokenType.IDENTIFIER, '应为变量名。');
+      // Check if the next token is an IDENTIFIER
+      if (this.peek().type !== TokenType.IDENTIFIER) {
+        // If it's a keyword, throw a specific error
+        // Assuming keywords are in a contiguous range from INT to STRUCT
+        if (this.peek().type >= TokenType.INT && this.peek().type <= TokenType.STRUCT) {
+          throw this.error(this.peek(), `不能使用关键字 '${this.peek().lexeme}' 作为变量名。`);
+        }
+        // Otherwise, let consume throw the generic "expected identifier" error
+        this.consume(TokenType.IDENTIFIER, '应为变量名。');
+      }
+      const name = this.advance(); // Consume the IDENTIFIER token
+
       let initializer: AST.Expr | undefined = undefined;
       if (this.match(TokenType.ASSIGN)) {
         initializer = this.expression();

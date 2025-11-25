@@ -100,4 +100,9 @@ describe('Parser', () => {
     const ast = parseSource(source);
     expect(ast).toMatchSnapshot();
   });
+
+  test('should throw an error when using a keyword as a variable name', () => {
+    const source = 'int return = 5;';
+    expect(() => parseSource(source)).toThrow("不能使用关键字 'return' 作为变量名。");
+  });
 });
