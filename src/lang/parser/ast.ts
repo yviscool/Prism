@@ -20,9 +20,12 @@ export interface Node {
 // 表达式是任何可以被求值的代码片段
 export interface Expr extends Node {}
 
+import { TokenType } from '../lexer/tokens';
+
 export interface LiteralExpr extends Expr {
   kind: 'Literal';
   value: any; // 字面量的实际值 (e.g., 123, true, "hello")
+  type: TokenType;
 }
 
 export interface IdentifierExpr extends Expr {

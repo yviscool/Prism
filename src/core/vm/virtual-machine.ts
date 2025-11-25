@@ -9,7 +9,7 @@ import { Instruction } from '../isa/instructions';
 import { OpCode } from '../isa/opcodes';
 import { VMStack } from '../memory/call-stack';
 import { Heap } from '../memory/heap';
-import { createBool, createInt, createPointer, Pointer, ValueType, VMValue } from '../memory/values';
+import { createBool, createInt, createDouble, createPointer, Pointer, ValueType, VMValue } from '../memory/values';
 import { Guardian } from './guardian';
 import { RuntimeError } from '../../shared/errors';
 
@@ -80,7 +80,9 @@ export class VirtualMachine {
           if ((left.type !== ValueType.INT && left.type !== ValueType.DOUBLE) || (right.type !== ValueType.INT && right.type !== ValueType.DOUBLE)) {
             throw new RuntimeError('操作数必须是数字。');
           }
-          const result = createInt(left.value + right.value);
+          const result = (left.type === ValueType.DOUBLE || right.type === ValueType.DOUBLE)
+            ? createDouble(left.value + right.value)
+            : createInt(left.value + right.value);
           this.stack.push(result);
           break;
         }
@@ -92,7 +94,9 @@ export class VirtualMachine {
           if ((left.type !== ValueType.INT && left.type !== ValueType.DOUBLE) || (right.type !== ValueType.INT && right.type !== ValueType.DOUBLE)) {
             throw new RuntimeError('操作数必须是数字。');
           }
-          const result = createInt(left.value - right.value);
+          const result = (left.type === ValueType.DOUBLE || right.type === ValueType.DOUBLE)
+            ? createDouble(left.value - right.value)
+            : createInt(left.value - right.value);
           this.stack.push(result);
           break;
         }
@@ -104,7 +108,9 @@ export class VirtualMachine {
           if ((left.type !== ValueType.INT && left.type !== ValueType.DOUBLE) || (right.type !== ValueType.INT && right.type !== ValueType.DOUBLE)) {
             throw new RuntimeError('操作数必须是数字。');
           }
-          const result = createInt(left.value * right.value);
+          const result = (left.type === ValueType.DOUBLE || right.type === ValueType.DOUBLE)
+            ? createDouble(left.value * right.value)
+            : createInt(left.value * right.value);
           this.stack.push(result);
           break;
         }
@@ -119,7 +125,9 @@ export class VirtualMachine {
           if (right.value === 0) {
             throw new RuntimeError('不能除以零。');
           }
-          const result = createInt(Math.trunc(left.value / right.value));
+          const result = (left.type === ValueType.DOUBLE || right.type === ValueType.DOUBLE)
+            ? createDouble(left.value / right.value)
+            : createInt(Math.trunc(left.value / right.value));
           this.stack.push(result);
           break;
         }
@@ -145,7 +153,11 @@ export class VirtualMachine {
           if (value.type !== ValueType.INT && value.type !== ValueType.DOUBLE) {
             throw new RuntimeError('操作数必须是数字。');
           }
-          this.stack.push(createInt(-value.value));
+          this.stack.push(
+            value.type === ValueType.DOUBLE
+              ? createDouble(-value.value)
+              : createInt(-value.value)
+          );
           break;
         }
         case OpCode.NOT: {

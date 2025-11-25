@@ -560,16 +560,20 @@ export class CodeGenerator {
 
   private visitLiteral(expr: AST.LiteralExpr): void {
     const value = expr.value;
-    if (typeof value === 'number') {
-      if (Number.isInteger(value)) {
+    switch (expr.type) {
+      case TokenType.INT_LITERAL:
         this.emit(OpCode.PUSH, createInt(value));
-      } else {
+        break;
+      case TokenType.DOUBLE_LITERAL:
         this.emit(OpCode.PUSH, createDouble(value));
-      }
-    } else if (typeof value === 'boolean') {
-      this.emit(OpCode.PUSH, createBool(value));
-    } else {
-      this.emit(OpCode.PUSH, null);
+        break;
+      case TokenType.TRUE:
+      case TokenType.FALSE:
+        this.emit(OpCode.PUSH, createBool(value));
+        break;
+      default:
+        this.emit(OpCode.PUSH, null);
+        break;
     }
   }
 
